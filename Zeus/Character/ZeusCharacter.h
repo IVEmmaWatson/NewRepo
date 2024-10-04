@@ -23,6 +23,7 @@ protected:
 	void MoveRight(float Value);
 	void Turn(float Value);
 	void LookUp(float Value);
+	void EquipButtonPressed();
 
 public:	
 	// Called every frame
@@ -41,7 +42,8 @@ public:
 	// OutLifetimeProps是OutLifetimeProps 是一个引用，指向一个 TArray<FLifetimeProperty> 类型的数组
 	// const 这个关键字表示函数不会修改类的成员变量。s
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	// 用于在所有组件初始化完成后进行额外的初始化操作，在beginpaly之前被调用
+	virtual void PostInitializeComponents() override;
 
 private:
 	// 定义变量的属性，如控制变量在编辑器中的可见性、可编辑性，以及它们在蓝图中的访问权限
@@ -70,6 +72,11 @@ private:
 	// 作为参数传递给 OnRep_OverlappingWeapon 函数的 LastWeapon 参数。
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
+
+
+	// 战斗组件类指针，在角色蓝图里关联起来
+	UPROPERTY(VisibleAnywhere)
+	class UCombatComponent* Combat;
 public:
 	// 网络复制的变量，只有在服务器上的属性真的发生变化时才会与客户端通信，告诉客户端该属性变化了
 	// 这里只是通知了客户端属性改变了，并没有通知服务器，Replicated网络复制的工作方式只存在从服务器通知客户端

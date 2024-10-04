@@ -19,7 +19,7 @@ AWeapon::AWeapon()
 	// 创建骨骼网格组件实例对象
 	// 你创建了一个actor蓝图，然后你得创建骨骼体和网格体，然后吧这个绑定到这个actor类的根组件上
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
-	WeaponMesh->SetupAttachment(RootComponent);
+	// WeaponMesh->SetupAttachment(RootComponent);
 	SetRootComponent(WeaponMesh);
 	// SetCollisionResponseToAllChannels：这是一个函数，用于设置组件对所有碰撞通道的响应方式
 	// ECollisionResponse::ECR_Block：这是一个枚举值，表示碰撞响应类型为“阻挡”。

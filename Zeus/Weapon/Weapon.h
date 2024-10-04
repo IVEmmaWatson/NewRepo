@@ -71,4 +71,8 @@ private:
 	// 蓝图文本控件与武器关联起来
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	class UWidgetComponent* PickupWidget;
+
+public:
+	// 设置武器状态
+	FORCEINLINE void SetWeaponState(EWeaponState State) { WeaponState = State; }
 };

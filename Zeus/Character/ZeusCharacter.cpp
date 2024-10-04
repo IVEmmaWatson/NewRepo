@@ -9,6 +9,7 @@
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Zeus/Weapon/Weapon.h"
+#include "Zeus/ZeusComponents/CombatComponent.h"
 
 AZeusCharacter::AZeusCharacter()
 {
@@ -35,12 +36,20 @@ AZeusCharacter::AZeusCharacter()
 
 	// 角色不与控制器一起旋转
 	// 当这个属性为 false 时，角色不会根据控制器的旋转来调整自身的朝向。也就是说，角色的朝向不再直接跟随控制器的旋转。
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = false; 
 	// 当这个属性为 true 时，角色会根据移动方向来调整自身的朝向。也就是说，角色会自动面向它移动的方向。
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
+	// 创建显示文本控件实例，绑定控件到根组件
 	OverHeadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverHeadWidget"));
 	OverHeadWidget->SetupAttachment(RootComponent);
+
+	// 创建战斗附加组件实例，不绑定到根组件，因为要绑定到角色手部插槽里
+	// 战斗类将为我们的角色处理所有与战斗相关的功能，这是这个类的实例，通过这个实例可以调用战斗类的所有变量和方法
+	// component组件不需要注册为网络复制属性，调用方法设置即可
+	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+	// 这行代码设置 CombatComponent 为可复制的，这意味着它的状态将在服务器和客户端之间同步。
+	Combat->SetIsReplicated(true);
 }
 
 
@@ -99,6 +108,15 @@ void AZeusCharacter::LookUp(float Value)
 	AddControllerPitchInput(Value);
 }
 
+void AZeusCharacter::EquipButtonPressed()
+{
+	if (Combat&&HasAuthority())
+	{
+		// 只有当角色进入碰撞区域时这个OverlappingWeapon指针才会有值，所以在combat里不用检测武器和角色的碰撞事件
+		Combat->EquipWeapon(OverlappingWeapon);
+	}
+}
+
 
 void AZeusCharacter::Tick(float DeltaTime)
 {
@@ -122,7 +140,9 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	// 绑定跳跃动作 IE_Pressed：这是一个枚举值，表示输入事件的类型。在这里，IE_Pressed 表示按键被按下时触发。
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ThisClass::Jump);
+	// 这里用的是父类自带的jump函数，没有重载
+	// 这里第一个参数是编辑器里设置的字符串名称
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	// PlayerInputComponent这是一个输入组件，负责处理玩家的输入。
 	// this代表当前类实例对象的指针，当前类是个角色类，所以控制角色
 	// 这是 PlayerInputComponent 的一个方法，用于绑定轴输入。"MoveForward"：这是输入轴的名称，通常在项目设置中定义。
@@ -130,6 +150,9 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAxis("MoveRight", this, &ThisClass::MoveRight);
 	PlayerInputComponent->BindAxis("Turn", this, &ThisClass::Turn);
 	PlayerInputComponent->BindAxis("LookUp", this, &ThisClass::LookUp);
+
+	// 绑定装备武器按钮
+	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ThisClass::EquipButtonPressed);
 }
 
 // GetLifetimeReplicatedProps用于注册一个类的网络同步属性
@@ -143,6 +166,15 @@ void AZeusCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	// DOREPLIFETIME(AZeusCharacter, OverlappingWeapon);
 	// COND_OwnerOnly: 这是复制条件，表示该变量只会复制给拥有该角色的客户端。
 	DOREPLIFETIME_CONDITION(AZeusCharacter, OverlappingWeapon, COND_OwnerOnly);
+}
+
+void AZeusCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	if (Combat)
+	{
+		Combat->Character = this;
+	}
 }
 
 void AZeusCharacter::OnRep_OverlappingWeapon(AWeapon *LastWeapon)
