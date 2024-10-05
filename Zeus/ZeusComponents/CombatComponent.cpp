@@ -23,6 +23,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UCombatComponent, EquipedWeapon);
+	DOREPLIFETIME(UCombatComponent, bAiming);
 }
 
 // 这个函数只会在服务器上执行
@@ -58,6 +59,22 @@ void UCombatComponent::BeginPlay()
 	
 }
 
+// 通过函数设置是否在瞄准，判断是否是服务器角色，如果是客户端角色则调用rpc函数
+// 因为客户端是复制角色没有与服务器的实际角色进行通信只能在本地看到自己的姿势
+// 所以当客户端按下瞄准后需要通知服务器角色也进入瞄准
+void UCombatComponent::SetAiming(bool bIsAiming)
+{
+	bAiming = bIsAiming; // 这句可以使客户端按下就可以看到瞄准姿势，不然还要等下面的rpc函数调用后才能看到姿势
+	if (!Character->HasAuthority())
+	{
+		ServerSetAiming(bIsAiming);
+	}
+}
+
+void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
+{
+	bAiming = bIsAiming;
+}
 
 // Called every frame
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

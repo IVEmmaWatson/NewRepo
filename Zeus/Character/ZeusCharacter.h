@@ -25,6 +25,8 @@ protected:
 	void LookUp(float Value);
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
+	void AimButtonPressed();
+	void AimButtonReleased();
 
 public:	
 	// Called every frame
@@ -84,11 +86,16 @@ private:
 	// 服务器需要有这个函数的执行代码。具体来说，当你在客户端调用一个带有 Server 标记的函数时，Unreal Engine 会将这个调用请求发送到服务器，并在服务器上执行相应的实现代码。
 	UFUNCTION(Server,Reliable)
 	void ServerEquipButtonPressed();
+
+
+
 public:
 	// 网络复制的变量，只有在服务器上的属性真的发生变化时才会与客户端通信，告诉客户端该属性变化了
 	// 这里只是通知了客户端属性改变了，并没有通知服务器，Replicated网络复制的工作方式只存在从服务器通知客户端
 	// FORCEINLINE void SetOverlappingWeapon(AWeapon* Weapon) { OverlappingWeapon = Weapon; };
 	void SetOverlappingWeapon(AWeapon* Weapon);
-
+	// 表示是否处于状态武器状态
 	bool IsWeaponEquipped();
+	// 表示是否处于武器瞄准状态
+	bool IsAiming();
 };

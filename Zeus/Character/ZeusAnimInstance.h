@@ -23,18 +23,27 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category = Character, meta = (AllowPrivateAccess = true));
 	class AZeusCharacter *ZeusCharacter;
 
+	// 速度
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess=true));
 	float Speed;
 
+	// 是否在空中
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	bool bIssInAir;
 
+	// 是否处于加速
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	bool bIsAccelerating;
 
+	// 是否装备了武器
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	bool bWeaponEquipped;
 
+	// 是否处于下蹲
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	bool bIsCrouched;
+
+	// 是否处于瞄准状态
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
+	bool bAiming;
 };

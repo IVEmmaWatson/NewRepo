@@ -60,6 +60,7 @@ void AZeusCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	
 }
 
 void AZeusCharacter::MoveForward(float Value)
@@ -148,7 +149,11 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	// 绑定装备武器按钮
 	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ThisClass::EquipButtonPressed);
+	// 绑定下蹲动作
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ThisClass::CrouchButtonPressed);
+	// 绑定鼠标右键瞄准动作,一个按下一个释放
+	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ThisClass::AimButtonPressed);
+	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ThisClass::AimButtonReleased);
 }
 
 // GetLifetimeReplicatedProps用于注册一个类的网络同步属性
@@ -198,7 +203,7 @@ void AZeusCharacter::EquipButtonPressed()
 		// 有权威的表示服务器端执行的按E键
 		if (HasAuthority())
 		{
-			// 只有当角色进入碰撞区域时这个OverlappingWeapon指针才会有值，所以在combat里不用检测武器和角色的碰撞事件
+			// NOTE: 只有当角色进入碰撞区域时这个OverlappingWeapon指针才会有值，所以在combat里不用检测武器和角色的碰撞事件
 			Combat->EquipWeapon(OverlappingWeapon);
 		}
 		else
@@ -226,6 +231,7 @@ void AZeusCharacter::ServerEquipButtonPressed_Implementation()
 	}
 }
 
+
 void AZeusCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 
@@ -252,8 +258,14 @@ void AZeusCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 
 bool AZeusCharacter::IsWeaponEquipped()
 {
-	// 检查是否装备了武器
+	// 检查是否装备了武器,检查指针是否空指针，因为EquipedWeapon如果不是空代表已经装备了武器
 	return (Combat && Combat->EquipedWeapon);
+}
+
+bool AZeusCharacter::IsAiming()
+{
+	// 检查布尔值，是否处于瞄准状态
+	return (Combat && Combat->bAiming);
 }
 
 
@@ -271,3 +283,21 @@ void AZeusCharacter::CrouchButtonPressed()
 		Crouch();
 	}
 }
+
+void AZeusCharacter::AimButtonPressed()
+{
+	// 其实这个战斗组件指针一直都有值
+	if (Combat)
+	{
+		Combat->SetAiming(true);
+	}
+}
+
+void AZeusCharacter::AimButtonReleased()
+{
+	if (Combat)
+	{
+		Combat->SetAiming(false);
+	}
+}
+

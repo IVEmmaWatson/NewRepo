@@ -45,4 +45,5 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsAccelerating = ZeusCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0 ? true : false;
 	bWeaponEquipped = ZeusCharacter->IsWeaponEquipped();
 	bIsCrouched = ZeusCharacter->bIsCrouched;
+	bAiming = ZeusCharacter->IsAiming();
 }

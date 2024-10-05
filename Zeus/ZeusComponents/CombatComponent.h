@@ -17,7 +17,7 @@ public:
 	// Sets default values for this component's properties
 	UCombatComponent();
 
-
+	// ÓÑÔªº¯Êýfriend
 	friend class AZeusCharacter;
 
 	
@@ -28,6 +28,10 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	void SetAiming(bool bIsAiming);
+
+	UFUNCTION(Server,Reliable)
+	void ServerSetAiming(bool bIsAiming);
 
 public:	
 	// Called every frame
@@ -40,6 +44,9 @@ private:
 
 	UPROPERTY(Replicated)
 	AWeapon* EquipedWeapon;
+
+	UPROPERTY(Replicated)
+	bool bAiming;
 
 public:
 
