@@ -33,6 +33,8 @@ protected:
 	UFUNCTION(Server,Reliable)
 	void ServerSetAiming(bool bIsAiming);
 
+	UFUNCTION()
+	void OnRep_EquippedWeapon();
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -42,7 +44,8 @@ private:
 	// 声明角色和武器类的指针，还没有实例化
 	class AZeusCharacter* Character;
 
-	UPROPERTY(Replicated)
+	// 将EquipedWeapon变量复制到网络中通信
+	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	AWeapon* EquipedWeapon;
 
 	UPROPERTY(Replicated)

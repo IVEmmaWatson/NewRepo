@@ -46,4 +46,14 @@ private:
 	// 是否处于瞄准状态
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	bool bAiming;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
+	float ShuiPing;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
+	float ChuiZhi;
+
+	FRotator CharacterRotatorLastFrame;
+	FRotator CharacterRotator;
+	FRotator DeltaRotation;
 };

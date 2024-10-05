@@ -6,6 +6,7 @@
 #include "Zeus/Character/ZeusCharacter.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values for this component's properties
 UCombatComponent::UCombatComponent()
@@ -46,7 +47,10 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	// 设置这个武器实例的拥有者
 	EquipedWeapon->SetOwner(Character);
 	
-	
+	// 当这个属性为 false 时，角色不会根据移动方向来调整自身的朝向。
+	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+	// 设置角色跟着控制器旋转，当这个属性为 true时，角色会根据控制器的旋转来调整自身的朝向。
+	Character->bUseControllerRotationYaw = true;
 }
 
 
@@ -74,6 +78,19 @@ void UCombatComponent::SetAiming(bool bIsAiming)
 void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
 {
 	bAiming = bIsAiming;
+}
+
+// 当EquipedWeapon变量发生变化时调用此函数改变玩家的旋转朝向
+// 需要当玩家拿着武器时，角色移动方向随鼠标控制，就是拿着武器的一面始终朝前，即相当于第一人称模式
+void UCombatComponent::OnRep_EquippedWeapon()
+{
+	if (EquipedWeapon && Character)
+	{
+		// 当这个属性为 false 时，角色不会根据移动方向来调整自身的朝向。
+		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+		// 设置角色跟着控制器旋转，当这个属性为 true时，角色会根据控制器的旋转来调整自身的朝向。
+		Character->bUseControllerRotationYaw = true;
+	}
 }
 
 // Called every frame
