@@ -50,6 +50,9 @@ AZeusCharacter::AZeusCharacter()
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	// 这行代码设置 CombatComponent 为可复制的，这意味着它的状态将在服务器和客户端之间同步。
 	Combat->SetIsReplicated(true);
+
+	// 通过将 bCanCrouch 设置为 true，你允许角色执行蹲下动作。
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 }
 
 
@@ -108,14 +111,6 @@ void AZeusCharacter::LookUp(float Value)
 	AddControllerPitchInput(Value);
 }
 
-void AZeusCharacter::EquipButtonPressed()
-{
-	if (Combat&&HasAuthority())
-	{
-		// 只有当角色进入碰撞区域时这个OverlappingWeapon指针才会有值，所以在combat里不用检测武器和角色的碰撞事件
-		Combat->EquipWeapon(OverlappingWeapon);
-	}
-}
 
 
 void AZeusCharacter::Tick(float DeltaTime)
@@ -153,6 +148,7 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	// 绑定装备武器按钮
 	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ThisClass::EquipButtonPressed);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ThisClass::CrouchButtonPressed);
 }
 
 // GetLifetimeReplicatedProps用于注册一个类的网络同步属性
@@ -161,7 +157,7 @@ void AZeusCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// 将 AZeusCharacter 类中的 OverlappingWeapon 属性注册为需要在网络上进行复制的属性，
+	// 将 AZeusCharacter 类中的 OverlappingWeapon 变量注册为需要在网络上进行复制的属性，
 	// 以确保在客户端和服务器之间同步该属性的值。
 	// DOREPLIFETIME(AZeusCharacter, OverlappingWeapon);
 	// COND_OwnerOnly: 这是复制条件，表示该变量只会复制给拥有该角色的客户端。
@@ -194,6 +190,42 @@ void AZeusCharacter::OnRep_OverlappingWeapon(AWeapon *LastWeapon)
 }
 
 
+
+void AZeusCharacter::EquipButtonPressed()
+{
+	if (Combat )
+	{
+		// 有权威的表示服务器端执行的按E键
+		if (HasAuthority())
+		{
+			// 只有当角色进入碰撞区域时这个OverlappingWeapon指针才会有值，所以在combat里不用检测武器和角色的碰撞事件
+			Combat->EquipWeapon(OverlappingWeapon);
+		}
+		else
+		{
+			// 没权威就是客户端按E了
+			ServerEquipButtonPressed();
+		}
+	}
+}
+
+
+
+
+
+// _Implementation 后缀表示这是在服务器端执行的函数实现.客户端不需要写这个逻辑代码只用调用就行
+// 客户端调用 ServerEquipButtonPressed 函数时，Unreal Engine 会将这个调用请求发送到服务器。
+// _Implementation 后缀：这个后缀用于定义服务器端的实际逻辑。当客户端调用这个函数时，Unreal Engine 会在服务器上执行带有 _Implementation 后缀的函数。
+void AZeusCharacter::ServerEquipButtonPressed_Implementation()
+{
+	// HasAuthority()不需要检查这个权威，因为这个函数只在服务器执行
+	if (Combat)
+	{
+		// 只有当角色进入碰撞区域时这个OverlappingWeapon指针才会有值，所以在combat里不用检测武器和角色的碰撞事件
+		Combat->EquipWeapon(OverlappingWeapon);
+	}
+}
+
 void AZeusCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 
@@ -218,4 +250,24 @@ void AZeusCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 	}
 }
 
+bool AZeusCharacter::IsWeaponEquipped()
+{
+	// 检查是否装备了武器
+	return (Combat && Combat->EquipedWeapon);
+}
 
+
+void AZeusCharacter::CrouchButtonPressed()
+{
+	// 检查是否已经是蹲下状态
+	if (bIsCrouched)
+	{
+		UnCrouch();
+		// bIsCrouched是否处于蹲下状态，是个布尔值，内置的
+		// 而UnCrouch和Crouch是改变这个布尔值的
+	}
+	else
+	{
+		Crouch();
+	}
+}

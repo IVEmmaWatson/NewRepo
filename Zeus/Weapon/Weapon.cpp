@@ -5,12 +5,14 @@
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Zeus\Character\ZeusCharacter.h"
+#include "Net/UnrealNetwork.h"
+#include "Zeus/ZeusComponents/CombatComponent.h"
 
 // Sets default values
 AWeapon::AWeapon()
 {
 
-	// 启用Actor或组件的网络复制功能
+	// 启用Actor或组件的网络复制功能,启用这个weapon组件的的网络复制
 	bReplicates = true;
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	// 这行代码用于启用Actor的Tick功能，使其每帧都能执行特定的逻辑。就是每帧都执行下面的tick函数
@@ -102,11 +104,59 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	}
 }
 
+
+// 这个主要用于客户端检测武器状态
+void AWeapon::SetWeaponState(EWeaponState State)
+{
+	WeaponState = State;
+	// // 隐藏捡起武器文本
+
+	switch (WeaponState)
+	{
+	case EWeaponState::EWS_Equiped:
+		ShowPickupWidget(false);
+		// 关闭碰撞检测
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		break;
+	
+	}
+	
+}
+
+// 这个主要用于服务器检测武器状态
+void AWeapon::OnRep_WeaponState()
+{
+	switch (WeaponState)
+	{
+	case EWeaponState::EWS_Initial:
+		break;
+	case EWeaponState::EWS_Equiped:
+		// 关闭按E文本显示，并取消碰撞区域，将碰撞检测关闭
+		ShowPickupWidget(false);
+		// AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		break;
+	case EWeaponState::EWS_Dropped:
+		break;
+	case EWeaponState::EWS_MAX:
+		break;
+	default:
+		break;
+	}
+}
+
 // Called every frame
 void AWeapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// 将这个类的WeaponState变量注册为在网络上可复制
+	DOREPLIFETIME(AWeapon, WeaponState);
 }
 
 void AWeapon::ShowPickupWidget(bool bShowWidget)

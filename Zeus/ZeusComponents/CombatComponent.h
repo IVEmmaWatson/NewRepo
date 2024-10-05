@@ -16,8 +16,12 @@ class ZEUS_API UCombatComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UCombatComponent();
+
+
 	friend class AZeusCharacter;
 
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// 装备武器，需要一个武器的指针 
 	void EquipWeapon(class AWeapon* WeaponToEquip);
 
@@ -33,6 +37,8 @@ public:
 private:
 	// 声明角色和武器类的指针，还没有实例化
 	class AZeusCharacter* Character;
+
+	UPROPERTY(Replicated)
 	AWeapon* EquipedWeapon;
 
 public:

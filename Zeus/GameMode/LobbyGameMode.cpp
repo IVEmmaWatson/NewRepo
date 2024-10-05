@@ -13,7 +13,7 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 	// 智能指针的get方法返回智能指针内部管理的原始指针。一个指向智能指针所管理对象的原始指针
 	// 用原始指针也就是游戏状态类的一个实例对象去访问玩家数组
 	int32 NumberOfPlayer = GameState.Get()->PlayerArray.Num();
-	if (NumberOfPlayer == 3)
+	if (NumberOfPlayer == 4)
 	{
 		UWorld* World = GetWorld();
 		if (World)

@@ -5,6 +5,7 @@
 #include "Zeus/Weapon/Weapon.h"
 #include "Zeus/Character/ZeusCharacter.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UCombatComponent::UCombatComponent()
@@ -17,6 +18,14 @@ UCombatComponent::UCombatComponent()
 	// ...
 }
 
+void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UCombatComponent, EquipedWeapon);
+}
+
+// 这个函数只会在服务器上执行
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	// 检查角色指针和武器指针是否为空
@@ -35,8 +44,8 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	}
 	// 设置这个武器实例的拥有者
 	EquipedWeapon->SetOwner(Character);
-	// 隐藏捡起武器文本
-	EquipedWeapon->ShowPickupWidget(false);
+	
+	
 }
 
 

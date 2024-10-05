@@ -43,4 +43,6 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
 	// GetCurrentAcceleration获取角色加速度矢量，Size获取角色加速度总量
 	bIsAccelerating = ZeusCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0 ? true : false;
+	bWeaponEquipped = ZeusCharacter->IsWeaponEquipped();
+	bIsCrouched = ZeusCharacter->bIsCrouched;
 }

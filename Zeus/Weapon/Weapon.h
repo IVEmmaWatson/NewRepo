@@ -30,7 +30,10 @@ public:
 
 	AWeapon();
 	virtual void Tick(float DeltaTime) override;
+	// 将需要进行网络复制的属性放到这个数组里
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void ShowPickupWidget(bool bShowWidget);
+	void SetWeaponState(EWeaponState State);
 protected:
 
 	virtual void BeginPlay() override;
@@ -64,15 +67,19 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	class USphereComponent* AreaSphere;
 
-	// 枚举类变量与蓝图关联起来
-	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
+	// 枚举类变量与蓝图关联起来,并将这个属性与下面的复制函数绑定，当这个变量发生改变时，下面的函数就会调用
+	UPROPERTY(ReplicatedUsing = OnRep_WeaponState, VisibleAnywhere, Category = "Weapon Properties")
 	EWeaponState WeaponState;
 
+	UFUNCTION()
+	void OnRep_WeaponState();
 	// 蓝图文本控件与武器关联起来
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	class UWidgetComponent* PickupWidget;
 
 public:
 	// 设置武器状态
-	FORCEINLINE void SetWeaponState(EWeaponState State) { WeaponState = State; }
+	 
+	// 设置碰撞区域事件
+	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
 };
