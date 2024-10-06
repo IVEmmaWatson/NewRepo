@@ -10,6 +10,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Zeus/Weapon/Weapon.h"
 #include "Zeus/ZeusComponents/CombatComponent.h"
+#include "Components/CapsuleComponent.h"
 
 AZeusCharacter::AZeusCharacter()
 {
@@ -53,6 +54,8 @@ AZeusCharacter::AZeusCharacter()
 
 	// 通过将 bCanCrouch 设置为 true，你允许角色执行蹲下动作。
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()-> SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 }
 
 
@@ -63,6 +66,7 @@ void AZeusCharacter::BeginPlay()
 	
 }
 
+// 只有按W才会触发这个函数，所以你单纯晃鼠标不会获取当前的yaw值，只有按了W才会获取此时鼠标的yaw值
 void AZeusCharacter::MoveForward(float Value)
 {
 	// Controller是从Apwan类继承来的，表示当前控制这个角色的控制器
@@ -70,16 +74,22 @@ void AZeusCharacter::MoveForward(float Value)
 	{
 		// Controller->GetControlRotation().Yaw获取玩家控制器的当前控制旋转的 Yaw 值。
 		// 以当前yaw值、忽略其他的值创建一个旋转类对象，因为yaw代表玩家的水平旋转也就是角色朝向，把其他值固定住
+
+		// 这个是创建一个以获取鼠标控制器的yaw值为核心，俯仰角和roll角固定为0 的旋转向量
+		// 然后下面以这个旋转向量创建一个旋转矩阵，获取这个矩阵的X轴的值
 		const FRotator YawRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
 		// FRotationMatrix(YawRotation)：使用 YawRotation 创建一个旋转矩阵。
 		// GetUnitAxis(EAxis::X)：从旋转矩阵中获取 X 轴的单位向量。
 		// FVector Direction：将结果存储在一个 FVector 对象中，表示方向向量。因为X轴始终表示角色正前方
 		const FVector Direction(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X));
+		// UE_LOG(LogTemp, Warning, TEXT("Direction: X=%f, Y=%f, Z=%f"), Direction.X, Direction.Y, Direction.Z);
 
+		// UE_LOG(LogTemp, Warning, TEXT("YawRotation: X=%f, Y=%f, Z=%f"), YawRotation.Roll, YawRotation.Yaw, YawRotation.Pitch);
 		// AddMovementInput 是 ACharacter 类中的一个方法，用于向角色添加移动输入。
 		// 这句代码的作用是根据指定的方向和输入值来移动角色。
 		// value正值表示向前，负值表示向后
 		AddMovementInput(Direction, Value);
+
 	}
 }
 
@@ -103,7 +113,11 @@ void AZeusCharacter::MoveRight(float Value)
 void AZeusCharacter::Turn(float Value)
 {
 	// 左右看，参数value控制水平旋转的角度值
+	// Value 参数表示旋转的角度值。这个值通常是从输入设备（如鼠标或控制器）获取的。
+	// 例如，移动鼠标或推摇杆会产生一个相应的输入值。
 	AddControllerYawInput(Value);
+
+	
 }
 
 void AZeusCharacter::LookUp(float Value)
@@ -131,6 +145,9 @@ void AZeusCharacter::Tick(float DeltaTime)
 }
 
 
+// PlayerInputComponent->BindAxis函数会自动处理输入轴的值并调用绑定的函数。
+// 当玩家在游戏中移动鼠标或使用控制器的右摇杆时，Unreal Engine会自动检测这些输入，并将相应的值传递给Turn函数中的Value参数。
+// 因此，你不需要手动调用Turn函数或传递参数，Unreal Engine会根据玩家的输入自动完成这些操作。
 void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);

@@ -36,6 +36,9 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	Velocity.Z = 0.f;
 	Speed = Velocity.Size();
 
+	// FVector fangxiang = Velocity.GetSafeNormal();
+	// UE_LOG(LogTemp, Warning, TEXT("fangxiang: X=%f, Y=%f, Z=%f"), fangxiang.X, fangxiang.Y, fangxiang.Z);
+	// UE_LOG(LogTemp, Display, TEXT("Velocity: X=%f, Y=%f, Z=%f"), Velocity.X, Velocity.Y, Velocity.Z);
 	// 检查角色是否在空中
 	//  ZeusCharacter->GetCharacterMovement()这个函数返回一个指向 UCharacterMovementComponent 的指针，
 	//  该组件负责处理角色的所有移动逻辑，包括行走、跳跃和掉落。
@@ -48,12 +51,13 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsCrouched = ZeusCharacter->bIsCrouched;
 	bAiming = ZeusCharacter->IsAiming();
 
+	
 	// 获取角色基础的瞄准方向值（是控制器的值，不是角色的方向值），是个方向向量
 	FRotator AimRotation=ZeusCharacter->GetBaseAimRotation();
 	// UKismetMathLibrary::MakeRotFromX这是一个静态函数，用于根据给定的 X 轴向量生成一个旋转值（FRotator 类型）。
 	// 具体来说，它会创建一个旋转，使得 X 轴对齐到给定的向量方向。
 	FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(ZeusCharacter->GetVelocity());
-
+	// UE_LOG(LogTemp, Warning, TEXT("AimRotation ShuiPing %f:"), AimRotation.Yaw);这个就是鼠标转向的值确定了
 	// ZeusCharacter->HasAuthority() && !ZeusCharacter->IsLocallyControlled(),服务器有所有玩家的绝对权威，而服务器又不是客户端角色的本地控制器
 	// if (!ZeusCharacter->HasAuthority() && !ZeusCharacter->IsLocallyControlled())
 	// {
@@ -81,6 +85,9 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	const float Interp = FMath::FInterpTo(ChuiZhi, Target, DeltaTime, 6.f);
 	ChuiZhi=FMath::Clamp(Interp, -90.f, 90.f);
 	
+	// UE_LOG(LogTemp, Warning, TEXT("shuiping is %f...chuizhi is %f"),ShuiPing,ChuiZhi);
 	// 上面代码计算角色在运动和旋转时的插值旋转和平滑过渡。50-83行代码需要重写注释
+
+
 }
 

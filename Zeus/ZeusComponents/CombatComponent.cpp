@@ -16,6 +16,9 @@ UCombatComponent::UCombatComponent()
 	// 不需要每帧都更新，因为这是把武器拿在手上的动作
 	PrimaryComponentTick.bCanEverTick = false;
 
+
+	BaseWalkSpeed = 600.f;
+	AimWalkSpeed = 450.f;
 	// ...
 }
 
@@ -59,7 +62,12 @@ void UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
+	// ...设置角色移动速度
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed= BaseWalkSpeed;
+	}
+
 	
 }
 
@@ -73,11 +81,21 @@ void UCombatComponent::SetAiming(bool bIsAiming)
 	{
 		ServerSetAiming(bIsAiming);
 	}
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	}
 }
 
 void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
 {
 	bAiming = bIsAiming;
+
+
+	if (Character)
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
+	}
 }
 
 // 当EquipedWeapon变量发生变化时调用此函数改变玩家的旋转朝向
