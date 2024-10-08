@@ -4,7 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Zeus/ZeusTypes/TurningInPlace.h"
+
 #include "ZeusCharacter.generated.h"
+
 
 UCLASS()
 class ZEUS_API AZeusCharacter : public ACharacter
@@ -28,6 +31,9 @@ protected:
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime);
+	virtual void Jump() override;
+	void FireButtonPressed();
+	void FireButtonReleased();
 
 public:	
 	// Called every frame
@@ -48,6 +54,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// 用于在所有组件初始化完成后进行额外的初始化操作，在beginpaly之前被调用
 	virtual void PostInitializeComponents() override;
+	void PlayFireMontage(bool bAiming);
 
 private:
 	// 定义变量的属性，如控制变量在编辑器中的可见性、可编辑性，以及它们在蓝图中的访问权限
@@ -89,8 +96,15 @@ private:
 	void ServerEquipButtonPressed();
 
 	float AO_Yaw;
+	float InterpAo_Yaw;
 	float AO_Pitch;
 	FRotator StartingAimRotation;
+
+	ETurningInPlace TurningInPlace;
+	void TurnInPlace(float DeltaTime);
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	class UAnimMontage* FireWeaponMontage;
 
 public:
 	// 网络复制的变量，只有在服务器上的属性真的发生变化时才会与客户端通信，告诉客户端该属性变化了
@@ -106,4 +120,7 @@ public:
 	FORCEINLINE float GETAO_Pitch() const { return AO_Pitch; }
 
 	AWeapon* GetEquippedWeapon();
+
+	// 获取枚举变量值
+	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 };

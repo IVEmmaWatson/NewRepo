@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Zeus/ZeusTypes/TurningInPlace.h"
+
 #include "ZeusAnimInstance.generated.h"
 
 /**
@@ -69,4 +71,7 @@ private:
 	//? 
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	FTransform LeftHandTransform;
+
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
+	ETurningInPlace TurningInPlace;
 };

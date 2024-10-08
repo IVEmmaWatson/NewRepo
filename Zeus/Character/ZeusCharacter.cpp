@@ -12,6 +12,7 @@
 #include "Zeus/ZeusComponents/CombatComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Zeus/Character/ZeusAnimInstance.h"
 
 AZeusCharacter::AZeusCharacter()
 {
@@ -57,6 +58,12 @@ AZeusCharacter::AZeusCharacter()
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()-> SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 100.f);
+
+
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 }
 
 
@@ -91,10 +98,6 @@ void AZeusCharacter::MoveForward(float Value)
 		// value正值表示向前，负值表示向后
 		AddMovementInput(Direction, Value);
 
-		if (Combat)
-		{
-			UE_LOG(LogTemp, Display, TEXT("cool is value"));
-		}
 	}
 
 	
@@ -165,7 +168,7 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	// 绑定跳跃动作 IE_Pressed：这是一个枚举值，表示输入事件的类型。在这里，IE_Pressed 表示按键被按下时触发。
 	// 这里用的是父类自带的jump函数，没有重载
 	// 这里第一个参数是编辑器里设置的字符串名称
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AZeusCharacter::Jump);
 	// PlayerInputComponent这是一个输入组件，负责处理玩家的输入。
 	//  /this代表当前类实例对象的指针，当前类是个角色类，所以控制角色
 	// 这是 PlayerInputComponent 的一个方法，用于绑定轴输入。"MoveForward"：这是输入轴的名称，通常在项目设置中定义。
@@ -181,6 +184,10 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	// 绑定鼠标右键瞄准动作,一个按下一个释放
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ThisClass::AimButtonPressed);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ThisClass::AimButtonReleased);
+
+	// 绑定鼠标左键开火动作
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ThisClass::FireButtonPressed);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ThisClass::FireButtonReleased);
 }
 
 // GetLifetimeReplicatedProps用于注册一个类的网络同步属性
@@ -204,6 +211,7 @@ void AZeusCharacter::PostInitializeComponents()
 		Combat->Character = this;
 	}
 }
+
 
 void AZeusCharacter::OnRep_OverlappingWeapon(AWeapon *LastWeapon)
 {
@@ -257,6 +265,8 @@ void AZeusCharacter::ServerEquipButtonPressed_Implementation()
 		Combat->EquipWeapon(OverlappingWeapon);
 	}
 }
+
+
 
 
 void AZeusCharacter::SetOverlappingWeapon(AWeapon* Weapon)
@@ -355,8 +365,12 @@ void AZeusCharacter::AimOffset(float DeltaTime)
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation,StartingAimRotation);
 		AO_Yaw = DeltaAimRotation.Yaw;
 		// 禁用控制器旋转，角色不会跟鼠标转向
-		bUseControllerRotationYaw = false;
-
+		if (TurningInPlace == ETurningInPlace::ETIP_NotTurning)
+		{
+			InterpAo_Yaw = AO_Yaw;
+		}
+		bUseControllerRotationYaw = true;
+		TurnInPlace(DeltaTime);		//! 这里这个deltatime参数可以不加，应该是预判会用这个，但是没用到，直接调用这个函数就行
 		// UE_LOG(LogTemp, Warning, TEXT("yes start yaw  %f"), StartingAimRotation.Yaw);
 		// UE_LOG(LogTemp, Warning, TEXT("asd yaw  %f"),AO_Yaw);
 		// UE_LOG(LogTemp, Warning, TEXT("base yaw  %f"), CurrentAimRotation.Yaw);
@@ -372,6 +386,7 @@ void AZeusCharacter::AimOffset(float DeltaTime)
 		// 启用控制器旋转，角色会跟鼠标转向																													//		假设角色停止时的 StartingAimRotation 为 30 度（Yaw），此时 AO_Yaw 为 0。
 		bUseControllerRotationYaw = true;																													//		如果鼠标移动使 CurrentAimRotation 变为 60 度（Yaw），则 DeltaAimRotation.Yaw 为 60 - 30 = 30 度，AO_Yaw 为 30 度。
 		// UE_LOG(LogTemp, Warning, TEXT("no start yaw  %f"), StartingAimRotation.Yaw);
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	
 	}																																												//		这表示角色在静止状态下，瞄准方向相对于停止时的方向偏移了 30 度。
 
@@ -388,3 +403,71 @@ void AZeusCharacter::AimOffset(float DeltaTime)
 	
 }
 
+void AZeusCharacter::Jump()
+{
+	
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Super::Jump();
+	}
+
+}
+
+
+
+void AZeusCharacter::TurnInPlace(float DeltaTime)
+{
+	// UE_LOG(LogTemp, Display, TEXT("Ao_yaw:%f"),AO_Yaw);
+	if (AO_Yaw > 90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_RIght;
+	}
+	else if (AO_Yaw<-90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Left;
+	}
+	if (TurningInPlace != ETurningInPlace::ETIP_NotTurning)
+	{
+		InterpAo_Yaw = FMath::FInterpTo(InterpAo_Yaw, 0.f, DeltaTime, 5.f);
+		AO_Yaw = InterpAo_Yaw;
+		if (FMath::Abs(AO_Yaw) < 15.f)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		}
+	}
+}
+
+void AZeusCharacter::FireButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->FireButtonPressed(true);
+	}
+}
+
+void AZeusCharacter::FireButtonReleased()
+{
+	if (Combat)
+	{
+		Combat->FireButtonPressed(false);
+	}
+}
+
+void AZeusCharacter::PlayFireMontage(bool bAiming)
+{
+	if (Combat == nullptr || Combat->EquipedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && FireWeaponMontage)
+	{
+		AnimInstance->Montage_Play(FireWeaponMontage);
+		FName SectionName;
+		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
