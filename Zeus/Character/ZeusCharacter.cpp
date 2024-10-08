@@ -418,7 +418,7 @@ void AZeusCharacter::Jump()
 }
 
 
-
+// 本来角色转向到最左边后会突然转到最右边，这样设置一下，角色转向到最左边时会跳到中间也就是角色朝前了
 void AZeusCharacter::TurnInPlace(float DeltaTime)
 {
 	// UE_LOG(LogTemp, Display, TEXT("Ao_yaw:%f"),AO_Yaw);
@@ -462,11 +462,16 @@ void AZeusCharacter::PlayFireMontage(bool bAiming)
 {
 	if (Combat == nullptr || Combat->EquipedWeapon == nullptr) return;
 
+	// 这行代码获取角色的动画实例（UAnimInstance），用于控制动画的播放。
+	// 动画实例是用来播放复杂的动画序列，简单的动画可以直接用骨骼组件调用playanimantion
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	// 检查 AnimInstance 和 FireWeaponMontage 是否有效。如果有效，则播放 FireWeaponMontage 动画蒙太奇。
 	if (AnimInstance && FireWeaponMontage)
 	{
 		AnimInstance->Montage_Play(FireWeaponMontage);
 		FName SectionName;
+		// 这段代码根据 bAiming 参数选择要播放的动画段。如果 bAiming 为 true，则选择 "RifleAim" 段；
+		// 否则选择 "RifleHip" 段。然后，使用 Montage_JumpToSection 函数跳转到指定的动画段。
 		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}

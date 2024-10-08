@@ -125,9 +125,12 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 void UCombatComponent::FireButtonPressed(bool bPressed)
 {
 	bFireButtonPressed = bPressed;
+	if (EquipedWeapon == nullptr) return;
 	if (Character&&bFireButtonPressed)
 	{
 		Character->PlayFireMontage(bAiming);
+		UE_LOG(LogTemp, Warning, TEXT("yes it is"));
+		EquipedWeapon->Fire();
 	}
 }
 

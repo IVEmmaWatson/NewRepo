@@ -7,6 +7,7 @@
 #include "Zeus\Character\ZeusCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Zeus/ZeusComponents/CombatComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 // Sets default values
 AWeapon::AWeapon()
@@ -48,6 +49,8 @@ AWeapon::AWeapon()
 	// 创建一个用户控件实例对象,绑定到根组件
 	PickupWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickupWidget"));
 	PickupWidget->SetupAttachment(RootComponent);
+
+	FireAnimation = CreateDefaultSubobject<UAnimationAsset>(TEXT("FireAnimation"));
 }
 
 // Called when the game starts or when spawned
@@ -123,6 +126,8 @@ void AWeapon::SetWeaponState(EWeaponState State)
 	
 }
 
+
+
 // 这个主要用于服务器检测武器状态
 void AWeapon::OnRep_WeaponState()
 {
@@ -167,3 +172,10 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 	}
 }
 
+void AWeapon::Fire()
+{
+	if (FireAnimation)
+	{
+		WeaponMesh->PlayAnimation(FireAnimation,false);
+	}
+}

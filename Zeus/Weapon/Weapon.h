@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Animation/AnimationAsset.h"
 #include "Weapon.generated.h"
+
 
 
 UENUM()
@@ -34,6 +36,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void ShowPickupWidget(bool bShowWidget);
 	void SetWeaponState(EWeaponState State);
+	void Fire();
 protected:
 
 	virtual void BeginPlay() override;
@@ -76,7 +79,10 @@ private:
 	// 蓝图文本控件与武器关联起来
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	class UWidgetComponent* PickupWidget;
-
+	
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	class UAnimationAsset* FireAnimation;
+	
 public:
 	// 设置武器状态
 	 
