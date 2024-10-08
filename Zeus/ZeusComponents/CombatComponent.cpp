@@ -69,6 +69,7 @@ void UCombatComponent::BeginPlay()
 	}
 
 	
+	
 }
 
 // 通过函数设置是否在瞄准，判断是否是服务器角色，如果是客户端角色则调用rpc函数
@@ -116,6 +117,8 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+
+	
+	
 }
 

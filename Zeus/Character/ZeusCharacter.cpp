@@ -11,6 +11,7 @@
 #include "Zeus/Weapon/Weapon.h"
 #include "Zeus/ZeusComponents/CombatComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AZeusCharacter::AZeusCharacter()
 {
@@ -90,7 +91,13 @@ void AZeusCharacter::MoveForward(float Value)
 		// value正值表示向前，负值表示向后
 		AddMovementInput(Direction, Value);
 
+		if (Combat)
+		{
+			UE_LOG(LogTemp, Display, TEXT("cool is value"));
+		}
 	}
+
+	
 }
 
 void AZeusCharacter::MoveRight(float Value)
@@ -142,6 +149,9 @@ void AZeusCharacter::Tick(float DeltaTime)
 		OverlappingWeapon->ShowPickupWidget(true);
 	}
 	*/
+	AimOffset(DeltaTime);
+
+	
 }
 
 
@@ -157,7 +167,7 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	// 这里第一个参数是编辑器里设置的字符串名称
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	// PlayerInputComponent这是一个输入组件，负责处理玩家的输入。
-	// this代表当前类实例对象的指针，当前类是个角色类，所以控制角色
+	//  /this代表当前类实例对象的指针，当前类是个角色类，所以控制角色
 	// 这是 PlayerInputComponent 的一个方法，用于绑定轴输入。"MoveForward"：这是输入轴的名称，通常在项目设置中定义。
 	PlayerInputComponent->BindAxis("MoveForWard", this, &ThisClass::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ThisClass::MoveRight);
@@ -285,6 +295,12 @@ bool AZeusCharacter::IsAiming()
 	return (Combat && Combat->bAiming);
 }
 
+AWeapon* AZeusCharacter::GetEquippedWeapon()
+{
+	if (Combat == nullptr)return nullptr;
+	return Combat->EquipedWeapon;
+}
+
 
 void AZeusCharacter::CrouchButtonPressed()
 {
@@ -316,5 +332,59 @@ void AZeusCharacter::AimButtonReleased()
 	{
 		Combat->SetAiming(false);
 	}
+}
+
+void AZeusCharacter::AimOffset(float DeltaTime)
+{
+	if (Combat && Combat->EquipedWeapon == nullptr) return;
+	FVector Velocity =GetVelocity();
+	Velocity.Z = 0.f;
+	float  Speed = Velocity.Size();
+
+	bool bIsInAir = GetCharacterMovement()->IsFalling();
+
+	// 站着不动，不在跳跃状态
+	//t 1.当角色移动后停止时，StartingAimRotation值是最后停止移动的那一帧的值，当然也就是鼠标的移动值
+	//t 比如角色移动几下停止后，你双手AFK，此时的StartingAimRotation是120.f，鼠标也就是GetBaseAimRotation()，也就是CurrentAimRotation的值也是120.f
+	//t 再者因为这个旋转值是根据yaw值去更改动画动作的，你两个值一样，相减就是0yaw,那就是基础姿势，然后鼠标转向，那yaw值就变了动作也变了。很简单
+	if (Speed == 0.f && !bIsInAir)
+	{
+		// 获取当前的鼠标旋转值的yaw值
+		FRotator CurrentAimRotation= FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		// 计算鼠标旋转值和角色移动后停下来的值的差异，也就是yaw值的差值
+		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation,StartingAimRotation);
+		AO_Yaw = DeltaAimRotation.Yaw;
+		// 禁用控制器旋转，角色不会跟鼠标转向
+		bUseControllerRotationYaw = false;
+
+		// UE_LOG(LogTemp, Warning, TEXT("yes start yaw  %f"), StartingAimRotation.Yaw);
+		// UE_LOG(LogTemp, Warning, TEXT("asd yaw  %f"),AO_Yaw);
+		// UE_LOG(LogTemp, Warning, TEXT("base yaw  %f"), CurrentAimRotation.Yaw);
+	}
+
+
+	if (Speed > 0.f || bIsInAir)
+	{
+		// 更新角色移动时或空中时的旋转值。其实只用角色停下来的那一帧,始终获取角色朝向正面的																		// 		为什么差值能表示瞄准偏移
+		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);																//		当角色停止移动时，StartingAimRotation 记录了角色停止时的瞄准方向。
+		// 关闭瞄准偏移																																					//		之后，任何鼠标移动都会改变 CurrentAimRotation，但 StartingAimRotation 保持不变。
+		AO_Yaw = 0.f;																																					 	//		通过计算 CurrentAimRotation 和 StartingAimRotation 之间的差值，我们可以得到角色在静止状态下的瞄准偏移量，即 AO_Yaw。
+		// 启用控制器旋转，角色会跟鼠标转向																													//		假设角色停止时的 StartingAimRotation 为 30 度（Yaw），此时 AO_Yaw 为 0。
+		bUseControllerRotationYaw = true;																													//		如果鼠标移动使 CurrentAimRotation 变为 60 度（Yaw），则 DeltaAimRotation.Yaw 为 60 - 30 = 30 度，AO_Yaw 为 30 度。
+		// UE_LOG(LogTemp, Warning, TEXT("no start yaw  %f"), StartingAimRotation.Yaw);
+	
+	}																																												//		这表示角色在静止状态下，瞄准方向相对于停止时的方向偏移了 30 度。
+
+	AO_Pitch = GetBaseAimRotation().Pitch;
+	if (AO_Pitch > 90.f && !IsLocallyControlled())
+	{
+		// 定义一个二维向量 InRange，表示输入范围为 270 到 360 度。
+		FVector2D InRange(270.f, 360.f);
+		FVector2D OutRange(-90.f, 0.f);
+		// 使用 FMath::GetMappedRangeValueClamped 函数将 AO_Pitch 从 InRange 映射到 OutRange。这个函数确保映射后的值在输出范围内。也就是说，
+		// 如果 AO_Pitch 在 270 到 360 度之间，它会被映射到 -90 到 0 度之间。
+		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);;
+	}
+	
 }
 

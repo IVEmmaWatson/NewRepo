@@ -82,4 +82,5 @@ public:
 	 
 	// 设置碰撞区域事件
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
+	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
 };

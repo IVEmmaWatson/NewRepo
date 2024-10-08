@@ -27,6 +27,7 @@ protected:
 	void CrouchButtonPressed();
 	void AimButtonPressed();
 	void AimButtonReleased();
+	void AimOffset(float DeltaTime);
 
 public:	
 	// Called every frame
@@ -87,7 +88,9 @@ private:
 	UFUNCTION(Server,Reliable)
 	void ServerEquipButtonPressed();
 
-
+	float AO_Yaw;
+	float AO_Pitch;
+	FRotator StartingAimRotation;
 
 public:
 	// 网络复制的变量，只有在服务器上的属性真的发生变化时才会与客户端通信，告诉客户端该属性变化了
@@ -98,4 +101,9 @@ public:
 	bool IsWeaponEquipped();
 	// 表示是否处于武器瞄准状态
 	bool IsAiming();
+
+	FORCEINLINE float GETAO_Yaw() const { return AO_Yaw; }
+	FORCEINLINE float GETAO_Pitch() const { return AO_Pitch; }
+
+	AWeapon* GetEquippedWeapon();
 };

@@ -5,11 +5,12 @@
 #include "ZeusCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Zeus/Weapon/Weapon.h"
 
 void UZeusAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
-	// TryGetPawnOwner 是 Unreal Engine 中 UAnimInstance 类的一个成员函数，用于获取拥有当前动画实例的 APawn。
+	//？ TryGetPawnOwner 是 Unreal Engine 中 UAnimInstance 类的一个成员函数，用于获取拥有当前动画实例的 APawn。
 	// 这个函数通常在动画蓝图中使用，以便获取控制该动画蓝图的角色。
 	ZeusCharacter = Cast<AZeusCharacter>(TryGetPawnOwner());
 }
@@ -36,6 +37,8 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	Velocity.Z = 0.f;
 	Speed = Velocity.Size();
 
+	// UE_LOG(LogTemp, Display, TEXT("Speed: %f"), Speed);
+
 	// FVector fangxiang = Velocity.GetSafeNormal();
 	// UE_LOG(LogTemp, Warning, TEXT("fangxiang: X=%f, Y=%f, Z=%f"), fangxiang.X, fangxiang.Y, fangxiang.Z);
 	// UE_LOG(LogTemp, Display, TEXT("Velocity: X=%f, Y=%f, Z=%f"), Velocity.X, Velocity.Y, Velocity.Z);
@@ -48,6 +51,7 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	// GetCurrentAcceleration获取角色加速度矢量，Size获取角色加速度总量
 	bIsAccelerating = ZeusCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0 ? true : false;
 	bWeaponEquipped = ZeusCharacter->IsWeaponEquipped();
+	EquippedWeapon = ZeusCharacter->GetEquippedWeapon();
 	bIsCrouched = ZeusCharacter->bIsCrouched;
 	bAiming = ZeusCharacter->IsAiming();
 
@@ -88,6 +92,22 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	// UE_LOG(LogTemp, Warning, TEXT("shuiping is %f...chuizhi is %f"),ShuiPing,ChuiZhi);
 	// 上面代码计算角色在运动和旋转时的插值旋转和平滑过渡。50-83行代码需要重写注释
 
+	AO_Yaw = ZeusCharacter->GETAO_Yaw();
+	AO_Pitch = ZeusCharacter->GETAO_Pitch();
 
+	//? 检查是否装备了武器和武器是否存在,以及武器模型人物模型是否存在
+	if (bWeaponEquipped && EquippedWeapon&& EquippedWeapon->GetWeaponMesh()&&ZeusCharacter->GetMesh())
+	{
+		// LeftHandTransform类型是一个类的旋转、位置、缩放三个属性的变量，这里是获取通过武器实例调用获取武器的骨骼然后获取骨骼上名为LeftHandSocket的插槽，
+		// ERelativeTransformSpace::RTS_World: 这是一个枚举值，指定要获取的变换空间。在这里，RTS_World 表示获取插槽在世界空间中的变换。
+		LeftHandTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("LeftHandSocket"), ERelativeTransformSpace::RTS_World);
+		FVector OutPosition;
+		FRotator OutRotation;
+		// 武器插槽在世界空间的位置转换映射到角色右手骨骼的空间位置上，然后获取其位置和旋转向量
+		ZeusCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandTransform.GetLocation(), FRotator::ZeroRotator, OutPosition, OutRotation);
+		LeftHandTransform.SetLocation(OutPosition);
+		LeftHandTransform.SetRotation(FQuat(OutRotation));
+
+	}
 }
 

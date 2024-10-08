@@ -39,6 +39,7 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	bool bWeaponEquipped;
 
+	class AWeapon* EquippedWeapon;
 	// 是否处于下蹲
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
 	bool bIsCrouched;
@@ -56,4 +57,16 @@ private:
 	FRotator CharacterRotatorLastFrame;
 	FRotator CharacterRotator;
 	FRotator DeltaRotation;
+
+	// 瞄准动作的水平角度
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
+	float AO_Yaw;
+
+	// 瞄准动作的垂直角度
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
+	float AO_Pitch;
+
+	//? 
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = true));
+	FTransform LeftHandTransform;
 };
