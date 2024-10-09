@@ -7,6 +7,8 @@
 #include "Zeus\Character\ZeusCharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Zeus/ZeusComponents/CombatComponent.h"
+#include "Casing.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "Components/SkeletalMeshComponent.h"
 
 // Sets default values
@@ -177,5 +179,35 @@ void AWeapon::Fire(const FVector& HitTarget)
 	if (FireAnimation)
 	{
 		WeaponMesh->PlayAnimation(FireAnimation,false);
+	}
+	if (CasingClass)
+	{
+		// 获取武器枪口的插槽
+		const USkeletalMeshSocket* AmmoEjectSocket = WeaponMesh->GetSocketByName(FName("AmmoEject"));
+
+		if (AmmoEjectSocket)
+		{
+			// 获取插槽相对于武器骨骼空间的变换（位置旋转缩放）
+			FTransform SocketTransform = AmmoEjectSocket->GetSocketTransform(WeaponMesh);
+
+
+			UWorld* World = GetWorld();
+
+
+
+			if (World)
+			{
+				// SpawnActor生成一个在世界里的对象
+				// 参数1要生成的对象类型，参数2生成弹丸的位置，参数3弹丸生成时的朝向，参数4生成参数结构体，包括生成所有者和引发生成的对象
+				World->SpawnActor<ACasing>(
+					CasingClass,
+					SocketTransform.GetLocation(),
+					// SocketTransform.GetRotation() 返回的是一个 FQuat 类型的四元数
+					SocketTransform.GetRotation().Rotator()
+				);
+
+
+			}
+		}
 	}
 }
