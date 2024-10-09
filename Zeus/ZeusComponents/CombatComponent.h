@@ -40,6 +40,15 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void FireButtonPressed(bool bPressed);
+
+	UFUNCTION(Server,Reliable)
+	void ServerFire();
+
+	UFUNCTION(NetMulticast,Reliable)
+	void MulticastFire();
+
+	void TraceUnderCorsshairs(FHitResult& TraceHitResult);
+
 private:
 	// 声明角色和武器类的指针，还没有实例化
 	class AZeusCharacter* Character;
@@ -58,6 +67,8 @@ private:
 	float AimWalkSpeed;
 
 	bool bFireButtonPressed;
+
+	FVector HitTarget;
 public:
 
 };
