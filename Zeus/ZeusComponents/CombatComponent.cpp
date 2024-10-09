@@ -121,19 +121,21 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// HitResult用来存储射线命中的目标信息
-	FHitResult HitResult;
-	TraceUnderCorsshairs(HitResult);
+	
 	
 	
 }
 
+// 只当开火箭按下后才追踪射线
 void UCombatComponent::FireButtonPressed(bool bPressed)
 {
 	bFireButtonPressed = bPressed; 
 	if (bFireButtonPressed)
 	{
-		ServerFire();
+		// HitResult用来存储射线命中的目标信息
+		FHitResult HitResult;
+		TraceUnderCorsshairs(HitResult);
+		ServerFire(HitResult.ImpactPoint);
 	}
 }
 
@@ -174,6 +176,7 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 
 		
 		// 射线从start开始，沿着 WorldDirection 方向延伸80000单位，检测是否碰撞到任何物体。并将碰撞后的目标信息存在TraceHitResult里
+		// 如果没有碰撞到物体，那TraceHitResult的命中点默认为000，就会飞到世界原点
 		GetWorld()->LineTraceSingleByChannel(
 			TraceHitResult,
 			Start,
@@ -181,16 +184,20 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 			ECollisionChannel::ECC_Visibility
 		);
 
-		// 检测碰撞,如果没有发生碰撞，那就把终点位置设为碰撞点（一般是天空）
+		// 不需要检测射线碰撞，上面已经检测碰撞了，这只是方面测试射线有没有生效
+		/*
+		// 检测射线碰撞,如果没有发生碰撞，那就把终点位置设为碰撞点（一般是天空）
 		if (!TraceHitResult.bBlockingHit)
 		{
 			// 碰撞点的坐标
 			TraceHitResult.ImpactPoint = End;
 			HitTarget = End;
 		}
+
 		else
 		{
 			HitTarget = TraceHitResult.ImpactPoint;
+			
 			// 绘制球体半径
 			// 如果 bBlockingHit 为 true（即发生了碰撞），则调用 DrawDebugSphere 函数在碰撞点绘制一个红色的调试球体。
 			DrawDebugSphere(
@@ -200,7 +207,9 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 				12,	// 球体的细分数（即球体的分段数，用于控制球体的平滑度）。
 				FColor::Red	// 球体的颜色，红色。
 			);
+			
 		}
+		*/
 	}
 
 
@@ -208,21 +217,23 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 }
 
 // 多播RPC调用，在服务器端调用多播rpc
-void UCombatComponent::MulticastFire_Implementation()
+//t FVector_NetQuantize 是 FVector 的一个优化版本，通过量化的方式降低了数据的精度和大小，
+//t 从而提高了网络传输效率，适用于多人游戏中频繁同步的位置和方向数据。
+void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize TraceHitTarget)
 {
 	if (EquipedWeapon == nullptr) return;
 	if (Character )
 	{
 		Character->PlayFireMontage(bAiming);
 		
-		EquipedWeapon->Fire(HitTarget);
+		EquipedWeapon->Fire(TraceHitTarget);
 	}
 }
 
 // 远程RPC调用
-void UCombatComponent::ServerFire_Implementation()
+void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize TraceHitTarget)
 {
-	MulticastFire();
+	MulticastFire(TraceHitTarget);
 }
 	
 

@@ -18,6 +18,7 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 		UWorld* World = GetWorld();
 		if (World)
 		{
+			// ÎÞ·ìÁª»ú
 			bUseSeamlessTravel = true;
 			World->ServerTravel(FString("/Game/Maps/ZeusMap1?listen"));
 		}
