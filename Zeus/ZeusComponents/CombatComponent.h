@@ -49,9 +49,12 @@ public:
 
 	void TraceUnderCorsshairs(FHitResult& TraceHitResult);
 
+	void SetHUDCrosshairs(float DeltaTime);
 private:
 	// 声明角色和武器类的指针，还没有实例化
 	class AZeusCharacter* Character;
+	class AZeusPlayerController* Controller;
+	class AZeusHUD* HUD;
 
 	// 将EquipedWeapon变量复制到网络中通信
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)

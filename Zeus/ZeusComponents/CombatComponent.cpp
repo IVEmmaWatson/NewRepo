@@ -9,6 +9,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Zeus/PlayerController/ZeusPlayerController.h"
+#include "Zeus/HUD/ZeusHUD.h"
 
 
 #define TRACE_LENGTH 80000.f
@@ -121,7 +123,7 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	
+	SetHUDCrosshairs(DeltaTime);
 	
 	
 }
@@ -216,6 +218,7 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 
 }
 
+
 // 多播RPC调用，在服务器端调用多播rpc
 //t FVector_NetQuantize 是 FVector 的一个优化版本，通过量化的方式降低了数据的精度和大小，
 //t 从而提高了网络传输效率，适用于多人游戏中频繁同步的位置和方向数据。
@@ -237,3 +240,45 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize Trace
 }
 	
 
+// 设置HUD纹理,初始化纹理
+void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
+{
+	if (Character == nullptr || Character->Controller==nullptr) return;
+
+	// Controller这个是自定义控制器的变量，如果这个变量没有值就把角色的默认控制器的值给他
+	Controller=Controller == nullptr ? Cast<AZeusPlayerController>(Character->GetController()) : Controller;
+
+
+	if (Controller)
+	{
+		// APlayerController是专门用于处理玩家输入、相机控制和HUD管理的类
+		// HUD 是显示在屏幕上的图形界面元素，比如玩家的健康条、分数、弹药等信息。
+		HUD = HUD == nullptr ? Cast<AZeusHUD>(Controller->GetHUD()) : HUD;
+		if (HUD)
+		{
+			if (EquipedWeapon)
+			{
+				FHUDPackage HUDPackage;
+				HUDPackage.CorsshairsCenter = EquipedWeapon->CrosshairsCenter;
+				HUDPackage.CorsshairsLeft = EquipedWeapon->CrosshairsLeft;
+				HUDPackage.CorsshairsRigth = EquipedWeapon->CrosshairsRight;
+				HUDPackage.CorsshairsTop = EquipedWeapon->CrosshairsTop;
+				HUDPackage.CorsshairsBottom = EquipedWeapon->CrosshairsBottom;
+
+				HUD->SetHUDPackeage(HUDPackage);
+			}
+			else
+			{
+				FHUDPackage HUDPackage;
+				HUDPackage.CorsshairsCenter = nullptr;
+				HUDPackage.CorsshairsLeft = nullptr;
+				HUDPackage.CorsshairsRigth = nullptr;
+				HUDPackage.CorsshairsTop = nullptr;
+				HUDPackage.CorsshairsBottom = nullptr;
+
+				HUD->SetHUDPackeage(HUDPackage);
+			}
+			
+		}
+	}
+}

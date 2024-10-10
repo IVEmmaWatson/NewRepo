@@ -22,7 +22,7 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OhterActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
-	void DestroyCasing();
+	
 private:
 	UPROPERTY(VisibleAnywhere, Category = "wanggeti")
 	UStaticMeshComponent* CasingMesh;

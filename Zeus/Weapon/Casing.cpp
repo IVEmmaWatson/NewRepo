@@ -4,7 +4,6 @@
 #include "Sound/SoundCue.h"
 #include "TimerManager.h"
 
-
 // Sets default values
 ACasing::ACasing()
 {
@@ -49,13 +48,9 @@ void ACasing::OnHit(UPrimitiveComponent* HitComp, AActor* OhterActor, UPrimitive
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, ShellSound, GetActorLocation());
 	}
-	FTimerHandle TimerHandle;
-	GetWorldTimerManager().SetTimer(TimerHandle, this, &ACasing::DestroyCasing, 2.0f, false);
-}
-
-void ACasing::DestroyCasing()
-{
 	Destroy();
 }
+
+
 
 

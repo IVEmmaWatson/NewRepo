@@ -37,6 +37,22 @@ public:
 	void ShowPickupWidget(bool bShowWidget);
 	void SetWeaponState(EWeaponState State);
 	virtual void Fire(const FVector& HitTarget);
+
+	// UTexture2D：这是Unreal Engine中的一个类，代表2D纹理。这些纹理通常用于游戏中的图像，如HUD元素、角色纹理等。
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	class UTexture2D* CrosshairsCenter;
+
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	class UTexture2D* CrosshairsLeft;
+
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	class UTexture2D* CrosshairsRight;
+
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	class UTexture2D* CrosshairsTop;
+
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	class UTexture2D* CrosshairsBottom;
 protected:
 
 	virtual void BeginPlay() override;
@@ -87,6 +103,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class ACasing> CasingClass;
 
+	
 public:
 	// 设置武器状态
 	 
