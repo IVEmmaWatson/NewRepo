@@ -186,6 +186,14 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 			ECollisionChannel::ECC_Visibility
 		);
 
+		// 当没有碰撞到物体时，防止子弹回世界原点
+		if (!TraceHitResult.bBlockingHit)
+		{
+			// 碰撞点的坐标
+			TraceHitResult.ImpactPoint = End;
+			// HitTarget = End;
+		}
+
 		// 不需要检测射线碰撞，上面已经检测碰撞了，这只是方面测试射线有没有生效
 		/*
 		// 检测射线碰撞,如果没有发生碰撞，那就把终点位置设为碰撞点（一般是天空）
@@ -256,29 +264,60 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 		HUD = HUD == nullptr ? Cast<AZeusHUD>(Controller->GetHUD()) : HUD;
 		if (HUD)
 		{
+			FHUDPackage HUDPackage;
 			if (EquipedWeapon)
 			{
-				FHUDPackage HUDPackage;
-				HUDPackage.CorsshairsCenter = EquipedWeapon->CrosshairsCenter;
-				HUDPackage.CorsshairsLeft = EquipedWeapon->CrosshairsLeft;
-				HUDPackage.CorsshairsRigth = EquipedWeapon->CrosshairsRight;
-				HUDPackage.CorsshairsTop = EquipedWeapon->CrosshairsTop;
-				HUDPackage.CorsshairsBottom = EquipedWeapon->CrosshairsBottom;
+				
+				HUDPackage.CrosshairsCenter = EquipedWeapon->CrosshairsCenter;
+				HUDPackage.CrosshairsLeft = EquipedWeapon->CrosshairsLeft;
+				HUDPackage.CrosshairsRight = EquipedWeapon->CrosshairsRight;
+				HUDPackage.CrosshairsTop = EquipedWeapon->CrosshairsTop;
+				HUDPackage.CrosshairsBottom = EquipedWeapon->CrosshairsBottom;
 
-				HUD->SetHUDPackeage(HUDPackage);
+				
 			}
 			else
 			{
-				FHUDPackage HUDPackage;
-				HUDPackage.CorsshairsCenter = nullptr;
-				HUDPackage.CorsshairsLeft = nullptr;
-				HUDPackage.CorsshairsRigth = nullptr;
-				HUDPackage.CorsshairsTop = nullptr;
-				HUDPackage.CorsshairsBottom = nullptr;
+				
+				HUDPackage.CrosshairsCenter = nullptr;
+				HUDPackage.CrosshairsLeft = nullptr;
+				HUDPackage.CrosshairsRight = nullptr;
+				HUDPackage.CrosshairsTop = nullptr;
+				HUDPackage.CrosshairsBottom = nullptr;
 
-				HUD->SetHUDPackeage(HUDPackage);
+				
 			}
-			
+			// 在调用绘制准星hud之前，设置准星分散值,根据角色的速度值
+			// 定义一个二维向量（0.f：行走速度的最小值。MaxWalkSpeed行走速度的最大值）
+			FVector2D WalkSpeedRange(0.f, Character->GetCharacterMovement()->MaxWalkSpeed);
+			// 映射到准星分散的范围
+			FVector2D VelocityMultiplierRange(0.f, 1.f);
+			// 获取角色的水平方向速度
+			FVector Vectory = Character->GetVelocity();
+			Vectory.Z = 0;
+
+			// 将角色当前速度从WalkSpeedRange映射到VelocityMultiplierRange
+			// 假设角色的最大行走速度是600，如果当前速度是300。Vectory.Size() 返回300。
+			// FMath::GetMappedRangeValueClamped 将300从范围 [0, 600] 映射到 [0, 1]，结果是 0.5。CrosshairVelocityFactor 因此为 0.5
+			CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(WalkSpeedRange, VelocityMultiplierRange, Vectory.Size());
+
+			if (Character->GetCharacterMovement()->IsFalling())
+			{
+				//t 插值函数用于平滑地过渡某个值到目标值。
+				//t 参数1当前值（CrosshairInAirFactor）：当前的准星因子值。参数2目标值（例如，2.25f 或 0.f）：期望插值到的目标值。
+				//t DeltaTime：时间间隔，用于确保插值过程的平滑性。
+				//t 插值速度（2.25f 或 30.f）：插值的速度，数值越大，过渡越快。
+				//t 就是根据插值速度和帧率，把CrosshairInAirFactor值过渡到2.25。插值速度越快，过渡也就越快
+				CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 2.25f, DeltaTime, 2.25f);
+			}
+			else
+			{
+				CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
+			}
+
+			HUDPackage.CrosshairSpread = CrosshairVelocityFactor+CrosshairInAirFactor;
+
+			HUD->SetHUDPackeage(HUDPackage);
 		}
 	}
 }

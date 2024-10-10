@@ -16,11 +16,13 @@ struct FHUDPackage
 	GENERATED_BODY()
 
 public:
-	class UTexture2D* CorsshairsCenter;
-	UTexture2D* CorsshairsLeft;
-	UTexture2D* CorsshairsRigth;
-	UTexture2D* CorsshairsTop;
-	UTexture2D* CorsshairsBottom;
+	class UTexture2D* CrosshairsCenter;
+	UTexture2D* CrosshairsLeft;
+	UTexture2D* CrosshairsRight;
+	UTexture2D* CrosshairsTop;
+	UTexture2D* CrosshairsBottom;
+
+	float CrosshairSpread;
 };
 // 这个结构体定义了一个HUD包，包含五个不同方向的准星纹理类。
 
@@ -38,7 +40,11 @@ public:
 private:
 	// 声明一个结构体变量
 	FHUDPackage HUDPackage;
-	void DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter);
+	void DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVector2D Spread);
+
+	// 准星最大扩散值
+	UPROPERTY(EditAnywhere)
+	float CrosshairSpreadMax = 16.f;
 public:
 	// 内联函数，赋值给这个结构体
 	FORCEINLINE void SetHUDPackeage(const FHUDPackage& Package) { HUDPackage = Package; }

@@ -72,6 +72,11 @@ private:
 	bool bFireButtonPressed;
 
 	FVector HitTarget;
+
+	// 准星速度因子
+	float CrosshairVelocityFactor;
+	// 准星空中因子
+	float CrosshairInAirFactor;
 public:
 
 };

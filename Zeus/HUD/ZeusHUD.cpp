@@ -16,31 +16,44 @@ void AZeusHUD::DrawHUD()
 		// 获取屏幕尺寸存到ViewportsSize变量里
 		GEngine->GameViewport->GetViewportSize(ViewportsSize);
 		const FVector2D ViewportCenter(ViewportsSize.X / 2, ViewportsSize.Y / 2);
+
+		// HUDPackage.CrosshairSpread是根据角色速度来调整的
+		float SpreadScaled = CrosshairSpreadMax * HUDPackage.CrosshairSpread;
+
 		// 绘制所有纹理
-		if (HUDPackage.CorsshairsCenter)
+		if (HUDPackage.CrosshairsCenter)
 		{
-			DrawCrosshair(HUDPackage.CorsshairsCenter, ViewportCenter);
+			// 准星点不变，四面散开
+			FVector2D Spread(0.f, 0.f);
+			DrawCrosshair(HUDPackage.CrosshairsCenter, ViewportCenter,Spread);
 		}
-		if (HUDPackage.CorsshairsLeft)
+		if (HUDPackage.CrosshairsLeft)
 		{
-			DrawCrosshair(HUDPackage.CorsshairsLeft, ViewportCenter);
+			//t x轴往左边转
+			FVector2D Spread(-SpreadScaled, 0.f);
+			DrawCrosshair(HUDPackage.CrosshairsLeft, ViewportCenter, Spread);
 		}
-		if (HUDPackage.CorsshairsRigth)
+		if (HUDPackage.CrosshairsRight)
 		{
-			DrawCrosshair(HUDPackage.CorsshairsRigth, ViewportCenter);
+			//t x轴往右边转
+			FVector2D Spread(SpreadScaled, 0.f);
+			DrawCrosshair(HUDPackage.CrosshairsRight, ViewportCenter, Spread);
 		}
-		if (HUDPackage.CorsshairsTop)
+		if (HUDPackage.CrosshairsTop)
 		{
-			DrawCrosshair(HUDPackage.CorsshairsTop, ViewportCenter);
+			// Y轴往上
+			FVector2D Spread(0.f ,- SpreadScaled);
+			DrawCrosshair(HUDPackage.CrosshairsTop, ViewportCenter, Spread);
 		}
-		if (HUDPackage.CorsshairsBottom)
+		if (HUDPackage.CrosshairsBottom)
 		{
-			DrawCrosshair(HUDPackage.CorsshairsBottom, ViewportCenter);
+			FVector2D Spread(0.f ,SpreadScaled);
+			DrawCrosshair(HUDPackage.CrosshairsBottom, ViewportCenter, Spread);
 		}
 	}
 }
 
-void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter)
+void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVector2D Spread)
 {
 	// 获取纹理的宽度和高度
 	const float TextureWidth = Texture->GetSizeX();
@@ -48,10 +61,12 @@ void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter)
 	//t 获取要绘制纹理在屏幕上的位置，绘制纹理都是从纹理左上角开始绘制
 	//t 如果直接用屏幕中心作为绘制点，那纹理的左上角就在屏幕中心，所以需要减去一半的纹理高度和宽度，让纹理的中心也在屏幕中心
 	// 纹理的左上角相对于纹理来说是不是也是一个屏幕原点，也就是0，0坐标，那右下角就是1，1坐标
+	// 加上准星扩散的值，如果角色速度小，那这个spread值就小，那这个纹理绘制就小集中，如果spread大那这个就绘制的大
 	const FVector2D TextureDrawPoint(
-		ViewportCenter.X - (TextureWidth / 2.f),
-		ViewportCenter.Y - (TextureHeight / 2.f)
+		ViewportCenter.X - (TextureWidth / 2.f)+Spread.X,
+		ViewportCenter.Y - (TextureHeight / 2.f)+Spread.Y
 	);
+
 	DrawTexture(
 		Texture,	// 绘制的纹理
 		TextureDrawPoint.X,	// 绘制起点X
@@ -62,4 +77,5 @@ void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter)
 		FColor::White
 	);
 
+	UE_LOG(LogTemp, Warning, TEXT("draw wenli"));
 }
