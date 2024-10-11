@@ -77,6 +77,28 @@ private:
 	float CrosshairVelocityFactor;
 	// 准星空中因子
 	float CrosshairInAirFactor;
+	// 准星瞄准因子
+	float CrosshairAimFactor;
+	// 准星射击因子
+	float CrosshairShootingFactor;
+
+	// 瞄准的FOV视野变化
+
+	// 保存默认视野值。用于在角色未瞄准或缩放时的正常视野。
+	float DefaultFOV;
+
+	// 定义缩放时的视野值。这个值表示当角色瞄准或使用武器瞄准镜时，视野将缩小到多少度。
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float ZoomedFOV = 30.f;
+
+	
+	float CurrentFOV;
+
+	// 定义缩放时视野插值的速度。这个值表示视野从默认视野过渡到缩放视野的速度。
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float ZoomInterpSpeed = 20.f;
+
+	void InterpFOV(float DeltaTime);
 public:
 
 };

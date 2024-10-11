@@ -311,6 +311,12 @@ AWeapon* AZeusCharacter::GetEquippedWeapon()
 	return Combat->EquipedWeapon;
 }
 
+FVector AZeusCharacter::GetHitTarget() const
+{
+	if (Combat == nullptr)return FVector();
+	return Combat->HitTarget;
+}
+
 
 void AZeusCharacter::CrouchButtonPressed()
 {
@@ -422,7 +428,7 @@ void AZeusCharacter::Jump()
 void AZeusCharacter::TurnInPlace(float DeltaTime)
 {
 	// UE_LOG(LogTemp, Display, TEXT("Ao_yaw:%f"),AO_Yaw);
-	if (AO_Yaw > 90.f)
+	if (AO_Yaw > 60.f)
 	{
 		TurningInPlace = ETurningInPlace::ETIP_RIght;
 	}

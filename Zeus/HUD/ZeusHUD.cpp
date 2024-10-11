@@ -77,5 +77,5 @@ void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVect
 		FColor::White
 	);
 
-	UE_LOG(LogTemp, Warning, TEXT("draw wenli"));
+
 }

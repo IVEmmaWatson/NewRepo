@@ -107,7 +107,39 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		ZeusCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandTransform.GetLocation(), FRotator::ZeroRotator, OutPosition, OutRotation);
 		LeftHandTransform.SetLocation(OutPosition);
 		LeftHandTransform.SetRotation(FQuat(OutRotation));
+		
+		// 获取右手的插槽的转换类型,这里能用武器的骨骼体找角色的骨骼体是因为，AttachActor这个函数，使武器的骨骼和角色的骨骼有了关联
+		//! FTransform RightHandTransform= EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("Hand_R"), ERelativeTransformSpace::RTS_World);
+		// 计算从一个点到另一个点的朝向旋转FindLookAtRotation 是一个静态方法，用于计算从 RightHandTransform.GetLocation() 到 ZeusCharacter->GetHitTarget() 的朝向旋转（FRotator）。
+		// 这意味着计算右手插槽需要转向的方向，以面对角色的目标。
+		// 是计算到初始状态的方向向量，也就是z轴在上，y轴向右边的初始状态，可以去骨骼体转向看看看看
+		//! UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(),RightHandTransform.GetLocation()+(RightHandTransform.GetLocation()-ZeusCharacter->GetHitTarget()));
 
+
+		if (ZeusCharacter->IsLocallyControlled())
+		{
+			bLocallyControlled = true;
+			FTransform RightHandTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("hand_r"), ERelativeTransformSpace::RTS_World);
+			RightHandRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - ZeusCharacter->GetHitTarget()));
+		}
+		
+		// RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
+
+		// 获取枪口在世界空间的平移旋转缩放
+		// FTransform MuzzleFlashTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("MuzzleFlash"), ERelativeTransformSpace::RTS_World);
+		
+		// MuzzleFlashTransform.GetRotation().Rotator())获取枪口插槽的旋转，旋转信息只描述旋转本身，不包括方向向量
+		// FRotationMatrix(MuzzleFlashTransform.GetRotation().Rotator())获取插槽的旋转矩阵，通过旋转矩阵可以获取方向向量
+		//t 每个物体都有XYZ轴，也都有轴向量，初始为(1, 0, 0)，(0, 1, 0)，(0, 0, 1)，这是物体自身空间的轴向量，不是世界空间的
+		//t 当物体旋转yaw角45度后X轴方向： (0.707, 0.707, 0)（向右前方）Y轴方向： (-0.707, 0.707, 0)（向前左方）Z轴方向： (0, 0, 1)
+		//t 而方向向量的长度（模）为1-----单位向量   单位向量的长度为1，表示纯粹的方向，没有大小。
+		//t 这里就是获取插槽自身的X轴向量,是单位向量
+		// FVector MuzzleX(FRotationMatrix(MuzzleFlashTransform.GetRotation().Rotator()).GetUnitAxis(EAxis::X));
+
+		// 绘制测试线，当前世界，起点是枪口插槽的位置，终点是插槽的X轴方向向量缩放1000倍的位置，颜色
+		// 上面的是枪口指向的测试线，下面的是瞄准线，也即是角色视线指向的测试线
+		// DrawDebugLine(GetWorld(), MuzzleFlashTransform.GetLocation(), MuzzleFlashTransform.GetLocation() + MuzzleX * 1000.f, FColor::Red);
+		// DrawDebugLine(GetWorld(), MuzzleFlashTransform.GetLocation(), ZeusCharacter->GetHitTarget(), FColor::Black);
 	}
 }
 

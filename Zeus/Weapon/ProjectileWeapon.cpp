@@ -4,16 +4,16 @@
 #include "ProjectileWeapon.h"
 #include	"Engine/SkeletalMeshSocket.h"
 
+
+//t ProjectileMovementComponent会自动处理子弹的运动
+//t 设置好了子弹的速度和方向，并在枪口生成了一个子弹实例，UE会自动处理子弹的运动。
 void AProjectileWeapon::Fire(const FVector& HitTarget)
 {
 	Super::Fire(HitTarget);
 
 	if (!HasAuthority()) return; // 这样是客户端看不到自己的特效，也看不到别人的特效
 	// 不加上面的检测就是客户端只能看到自己的特效，看不到别人的特效
-	
-	UE_LOG(LogTemp, Warning, TEXT("target X %f"),HitTarget.X);
-	UE_LOG(LogTemp, Warning, TEXT("target Y %f"), HitTarget.Y);
-	UE_LOG(LogTemp, Warning, TEXT("target Z %f"), HitTarget.Z);
+
 	// 将所有者类型转换成apawn对象，通过这种类型转换，可以确保 InstigatorPawn 是一个 APawn 对象。
 	// 指向所有者（如果它是 APawn 类型）的指针。如果转换失败（即所有者不是 APawn 类型），InstigatorPawn 将为 nullptr。
 	APawn* InstigatorPawn = Cast<APawn>(GetOwner());
@@ -43,7 +43,8 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 			if (World)
 			{
 				// SpawnActor生成一个在世界里的对象
-				// 参数1要生成的对象类型，参数2生成弹丸的位置，参数3弹丸生成时的朝向，参数4生成参数结构体，包括生成所有者和引发生成的对象
+				// 参数1要生成的对象类型，参数2生成子弹的位置，参数3子弹生成时的朝向，参数4生成参数结构体，包括生成所有者和引发生成的对象
+				//t 这里为什么不传方向向量而传旋转信息，是因为旋转信息里就包括了XYZ三个轴的方向向量
 				World->SpawnActor<AProjectile>(
 					ProjectileClass,
 					SocketTransform.GetLocation(),
