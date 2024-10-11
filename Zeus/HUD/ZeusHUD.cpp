@@ -25,35 +25,35 @@ void AZeusHUD::DrawHUD()
 		{
 			// 准星点不变，四面散开
 			FVector2D Spread(0.f, 0.f);
-			DrawCrosshair(HUDPackage.CrosshairsCenter, ViewportCenter,Spread);
+			DrawCrosshair(HUDPackage.CrosshairsCenter, ViewportCenter,Spread,HUDPackage.CrosshairColor);
 		}
 		if (HUDPackage.CrosshairsLeft)
 		{
 			//t x轴往左边转
 			FVector2D Spread(-SpreadScaled, 0.f);
-			DrawCrosshair(HUDPackage.CrosshairsLeft, ViewportCenter, Spread);
+			DrawCrosshair(HUDPackage.CrosshairsLeft, ViewportCenter, Spread, HUDPackage.CrosshairColor);
 		}
 		if (HUDPackage.CrosshairsRight)
 		{
 			//t x轴往右边转
 			FVector2D Spread(SpreadScaled, 0.f);
-			DrawCrosshair(HUDPackage.CrosshairsRight, ViewportCenter, Spread);
+			DrawCrosshair(HUDPackage.CrosshairsRight, ViewportCenter, Spread, HUDPackage.CrosshairColor);
 		}
 		if (HUDPackage.CrosshairsTop)
 		{
 			// Y轴往上
 			FVector2D Spread(0.f ,- SpreadScaled);
-			DrawCrosshair(HUDPackage.CrosshairsTop, ViewportCenter, Spread);
+			DrawCrosshair(HUDPackage.CrosshairsTop, ViewportCenter, Spread, HUDPackage.CrosshairColor);
 		}
 		if (HUDPackage.CrosshairsBottom)
 		{
 			FVector2D Spread(0.f ,SpreadScaled);
-			DrawCrosshair(HUDPackage.CrosshairsBottom, ViewportCenter, Spread);
+			DrawCrosshair(HUDPackage.CrosshairsBottom, ViewportCenter, Spread, HUDPackage.CrosshairColor);
 		}
 	}
 }
 
-void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVector2D Spread)
+void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVector2D Spread, FLinearColor CrosshairColor)
 {
 	// 获取纹理的宽度和高度
 	const float TextureWidth = Texture->GetSizeX();
@@ -74,7 +74,7 @@ void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVect
 		TextureWidth, TextureHeight,		// 纹理高度宽度
 		0.f, 0.f,	// 起始坐标表示从纹理的左上角开始采样。0.f 对应纹理的U轴（水平轴）起点，0.f 对应纹理的V轴（垂直轴）起点。这意味着从纹理的左上角开始绘制。
 		1.f, 1.f,	// 终止坐标 (End U, End V)：表示纹理的采样终止位置。1.f 对应纹理的U轴终点（右边缘），1.f 对应纹理的V轴终点（下边缘）。这意味着绘制整个纹理，从左上角到右下角全部显示出来
-		FColor::White
+		CrosshairColor
 	);
 
 

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Zeus/HUD/ZeusHUD.h"
 #include "CombatComponent.generated.h"
 
 
@@ -72,6 +73,8 @@ private:
 	bool bFireButtonPressed;
 
 	FVector HitTarget;
+	// 准星设置的结构体
+	FHUDPackage HUDPackage;
 
 	// 准星速度因子
 	float CrosshairVelocityFactor;

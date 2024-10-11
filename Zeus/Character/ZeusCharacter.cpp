@@ -13,6 +13,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Zeus/Character/ZeusAnimInstance.h"
+#include "Zeus/Zeus.h"
 
 AZeusCharacter::AZeusCharacter()
 {
@@ -57,7 +58,11 @@ AZeusCharacter::AZeusCharacter()
 	// 通过将 bCanCrouch 设置为 true，你允许角色执行蹲下动作。
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	// 设置骨骼体的碰撞通道类型
+	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
 	GetMesh()-> SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	// 角色的转身速度
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 100.f);
 
 
@@ -154,7 +159,7 @@ void AZeusCharacter::Tick(float DeltaTime)
 	*/
 	AimOffset(DeltaTime);
 
-	
+	HideCameraIFCharacterClose();
 }
 
 
@@ -448,6 +453,44 @@ void AZeusCharacter::TurnInPlace(float DeltaTime)
 	}
 }
 
+
+void AZeusCharacter::ServerHit_Implementation()
+{
+	MulticastHit();
+}
+
+
+void AZeusCharacter::MulticastHit_Implementation()
+{
+	PlayHitReactMontage();
+}
+
+void AZeusCharacter::HideCameraIFCharacterClose()
+{
+
+	// 检查是否为本地控制的角色，如果不是，则直接返回不执行后续操作。这用于确保只有本地控制的角色执行可见性更改
+	if (!IsLocallyControlled())return;
+
+	// (FollowCamera->GetComponentLocation() - GetActorLocation()).Size() 计算摄像机和角色的位置距离。
+	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	{
+		GetMesh()->SetVisibility(false);
+		if (Combat && Combat->EquipedWeapon && Combat->EquipedWeapon->GetWeaponMesh())
+		{
+			// bOwnerNoSee 设置为 true，表示角色自己看不到武器网格。
+			Combat->EquipedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+		}
+	}
+	else
+	{
+		GetMesh()->SetVisibility(true);
+		if (Combat && Combat->EquipedWeapon && Combat->EquipedWeapon->GetWeaponMesh())
+		{
+			Combat->EquipedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+		}
+	}
+}
+
 void AZeusCharacter::FireButtonPressed()
 {
 	if (Combat)
@@ -482,3 +525,27 @@ void AZeusCharacter::PlayFireMontage(bool bAiming)
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
+
+void AZeusCharacter::PlayHitReactMontage()
+{
+
+	if (Combat == nullptr || Combat->EquipedWeapon == nullptr) return;
+
+	// 这行代码获取角色的动画实例（UAnimInstance），用于控制动画的播放。
+	// 动画实例是用来播放复杂的动画序列，简单的动画可以直接用骨骼组件调用playanimantion
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	// 检查 AnimInstance 和 FireWeaponMontage 是否有效。如果有效，则播放 FireWeaponMontage 动画蒙太奇。
+	if (AnimInstance && HitReactMontage)
+	{
+		AnimInstance->Montage_Play(HitReactMontage);
+		FName SectionName("FromFront");
+		// 这段代码根据 bAiming 参数选择要播放的动画段。如果 bAiming 为 true，则选择 "RifleAim" 段；
+		// 否则选择 "RifleHip" 段。然后，使用 Montage_JumpToSection 函数跳转到指定的动画段。
+		
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+
+
+}
+
+

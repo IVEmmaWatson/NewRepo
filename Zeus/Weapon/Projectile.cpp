@@ -7,7 +7,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystem.h"
+#include "Zeus/Character/ZeusCharacter.h"
 #include "Sound/SoundCue.h"
+#include "Zeus/Zeus.h"
 
 // Sets default values
 AProjectile::AProjectile()
@@ -34,7 +36,8 @@ AProjectile::AProjectile()
 	//? 设置特定通道的响应事件为阻挡，ECC_Visibility视线通道，ECC_WorldStatic静态世界物体（如墙壁、地面）
 	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
-
+	// 设置子弹对骨骼体的碰撞为阻挡
+	CollisionBox->SetCollisionResponseToChannel(ECC_SkeletalMesh, ECollisionResponse::ECR_Block);
 	//t ProjectileMovementComponent这是一个用于管理弹丸运动的组件。它负责处理弹丸的移动逻辑，比如速度、重力、阻力等。
 	//t bRotationFollowsVelocity：这是一个布尔值属性。设置为 true 后，弹丸的旋转将自动跟随它的速度方向。速度是一个矢量量，包含两个重要的部分：大小和方向。
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
@@ -80,6 +83,17 @@ void AProjectile::BeginPlay()
 // 
 void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OhterActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	AZeusCharacter* ZeusCharacter = Cast<AZeusCharacter>(OhterActor);
+
+	if (ZeusCharacter)
+	{
+		ZeusCharacter->ServerHit();
+	}
+
+
+
+
+
 	// 播放特效
 	// 销毁这个acotr对象，调用后这个Actor将被标记为待销毁，并在下一帧中实际销毁。
 	// 由于 Destroyed() 方法会在所有网络端调用，当服务器调用 Destroy() 后，客户端也会执行相应的 Destroyed() 方法，从而播放特效和声音。

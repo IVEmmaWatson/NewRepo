@@ -11,7 +11,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Zeus/PlayerController/ZeusPlayerController.h"
 #include "Camera/CameraComponent.h"
-#include "Zeus/HUD/ZeusHUD.h"
 
 
 #define TRACE_LENGTH 80000.f
@@ -195,10 +194,27 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 		// 由于 DeprojectScreenToWorld 方法将屏幕中心点投影到世界坐标，结果会接近摄像机的实际位置。
 		FVector Start = CrosshariWorldPosition;
 
+		// 计算初始线到角色之间的距离，因为初始线是从相机发射出来的，而瞄准线不能指向角色后面，也就是相机到角色的这一段距离
+		if (Character)
+		{
+			// Size() 函数计算向量的长度，即向量的欧几里得距离。
+			float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
+
+			// 更新射线起点。
+			// 在三维空间中，方向向量（CrosshairWorldDirection）提供了一个明确的方向，而标量（DistanceToCharacter + 100.f）只是表示一个距离。
+			// 要在特定方向上移动一定距离，就必须将方向向量与距离相乘。这确保我们沿着正确的方向移动。
+			Start += CrosshariWorldDirection * (DistanceToCharacter + 100.f);
+
+			
+		}
+
+
+
 		// 将方向向量缩放变成缩放向量
 		FVector End = Start + CrosshariWorldDirection * 80000.f;
 
 		
+
 		// 射线从start开始，沿着 WorldDirection 方向延伸80000单位，检测是否碰撞到任何物体。并将碰撞后的目标信息存在TraceHitResult里
 		// 如果没有碰撞到物体，那TraceHitResult的命中点默认为000，就会飞到世界原点
 		GetWorld()->LineTraceSingleByChannel(
@@ -216,6 +232,16 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 			// HitTarget = End;
 		}
 
+		// TraceHitResult.GetActor()返回碰撞到的actor对象指针，Implements<UInteractWithCrosshairInterface>() 是一个模板函数，用于检查给定的 AActor 是否实现了某个接口。
+		// 这里是检查碰撞到的这个actor类是否实现了这个接口
+		if (TraceHitResult.GetActor() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairInterface>())
+		{
+			HUDPackage.CrosshairColor = FLinearColor::Red;
+		}
+		else
+		{
+			HUDPackage.CrosshairColor = FLinearColor::White;
+		}
 		// 不需要检测射线碰撞，上面已经检测碰撞了，这只是方面测试射线有没有生效
 		/*
 		// 检测射线碰撞,如果没有发生碰撞，那就把终点位置设为碰撞点（一般是天空）
@@ -286,7 +312,7 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 		HUD = HUD == nullptr ? Cast<AZeusHUD>(Controller->GetHUD()) : HUD;
 		if (HUD)
 		{
-			FHUDPackage HUDPackage;
+			
 			if (EquipedWeapon)
 			{
 				

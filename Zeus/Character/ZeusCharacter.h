@@ -5,12 +5,14 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Zeus/ZeusTypes/TurningInPlace.h"
+#include "Zeus/interfaces/InteractWithCrosshairInterface.h"
 
 #include "ZeusCharacter.generated.h"
 
 
+// AZeusCharacter 还继承了 IInteractWithCrosshairInterface 接口。这意味着 AZeusCharacter 类必须实现 IInteractWithCrosshairInterface 接口中的所有方法（如果有定义）。
 UCLASS()
-class ZEUS_API AZeusCharacter : public ACharacter
+class ZEUS_API AZeusCharacter : public ACharacter,public IInteractWithCrosshairInterface
 {
 	GENERATED_BODY()
 
@@ -55,6 +57,18 @@ public:
 	// 用于在所有组件初始化完成后进行额外的初始化操作，在beginpaly之前被调用
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bAiming);
+	void PlayHitReactMontage();
+
+
+	UFUNCTION(Server, Reliable)
+	void ServerHit();
+
+
+	// NetMulticast：表示这个函数是一个多播函数,可以在服务器调用时同步到所有客户端。换句话说，当服务器调用这个函数时，所有连接的客户端都会执行这个函数。
+	// Unreliable：表示这个多播函数是不可靠的。也就是说，不保证这个函数的调用一定会到达客户端，可能会丢失一些调用。这种不可靠性通常用于需要频繁更新，但不需要精确同步的情况，比如动画、特效等。
+	// 当某个玩家击中目标时服务器可以调用 MulticastHit 来通知所有客户端播放击中特效,不需要每次都确保每个客户端都能收到这个通知
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastHit();
 
 private:
 	// 定义变量的属性，如控制变量在编辑器中的可见性、可编辑性，以及它们在蓝图中的访问权限
@@ -106,6 +120,17 @@ private:
 	UPROPERTY(EditAnywhere, Category = Combat)
 	class UAnimMontage* FireWeaponMontage;
 
+	UPROPERTY(EditAnywhere, Category = Combat)
+	class UAnimMontage* HitReactMontage;
+
+	
+	
+
+	void HideCameraIFCharacterClose();
+
+	UPROPERTY(EditAnywhere)
+	float CameraThreshold=200.f;
+
 public:
 	// 网络复制的变量，只有在服务器上的属性真的发生变化时才会与客户端通信，告诉客户端该属性变化了
 	// 这里只是通知了客户端属性改变了，并没有通知服务器，Replicated网络复制的工作方式只存在从服务器通知客户端
@@ -127,4 +152,7 @@ public:
 	FVector GetHitTarget() const;
 
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+
+	
 };

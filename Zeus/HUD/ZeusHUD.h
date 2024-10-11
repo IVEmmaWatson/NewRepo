@@ -21,7 +21,10 @@ public:
 	UTexture2D* CrosshairsRight;
 	UTexture2D* CrosshairsTop;
 	UTexture2D* CrosshairsBottom;
+	// 十字准星的颜色
+	FLinearColor CrosshairColor;
 
+	// 十字准星的绘制边界，离屏幕中心点的距离
 	float CrosshairSpread;
 };
 // 这个结构体定义了一个HUD包，包含五个不同方向的准星纹理类。
@@ -40,7 +43,7 @@ public:
 private:
 	// 声明一个结构体变量
 	FHUDPackage HUDPackage;
-	void DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVector2D Spread);
+	void DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVector2D Spread,FLinearColor CrosshairColor);
 
 	// 准星最大扩散值
 	UPROPERTY(EditAnywhere)
