@@ -39,7 +39,17 @@ class ZEUS_API AZeusHUD : public AHUD
 	
 public:
 	virtual void DrawHUD() override;
+	
+	// 声明了一个名为 CharacterOverlayClass 的属性，这个属性可以在编辑器的任何地方进行编辑，并且被归类在 "Player Stats" 分类下。该属性类型是 TSubclassOf<UUserWidget>，
+	// 即这个属性可以存储任意一个 UUserWidget 的子类。
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	TSubclassOf<class UUserWidget> CharacterOverlayClass;
 
+	class UCharacterOverlay* CharacterOverlay;
+
+protected:
+	virtual void BeginPlay() override;
+	void AddCharacterOverlay();
 private:
 	// 声明一个结构体变量
 	FHUDPackage HUDPackage;

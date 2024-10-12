@@ -54,6 +54,7 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	EquippedWeapon = ZeusCharacter->GetEquippedWeapon();
 	bIsCrouched = ZeusCharacter->bIsCrouched;
 	bAiming = ZeusCharacter->IsAiming();
+	bRotateRootBone = ZeusCharacter->ShouldRotateRootBone();
 	TurningInPlace = ZeusCharacter->GetTurningInPlace();
 	
 	// 获取角色基础的瞄准方向值（是控制器的值，不是角色的方向值），是个方向向量

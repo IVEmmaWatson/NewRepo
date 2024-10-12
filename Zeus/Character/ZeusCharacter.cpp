@@ -143,6 +143,8 @@ void AZeusCharacter::LookUp(float Value)
 
 
 
+
+
 void AZeusCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -157,7 +159,21 @@ void AZeusCharacter::Tick(float DeltaTime)
 		OverlappingWeapon->ShowPickupWidget(true);
 	}
 	*/
-	AimOffset(DeltaTime);
+	
+	// 如果角色不是模拟代理，那就用服务器通信版的瞄准偏移
+	if (GetLocalRole() > ENetRole::ROLE_SimulatedProxy && IsLocallyControlled())
+	{
+		AimOffset(DeltaTime);
+	}
+	else
+	{
+		TimeSinceLastMovementReplication += DeltaTime;
+		if (TimeSinceLastMovementReplication > 0.25f)
+		{
+			OnRep_ReplicatedMovement();
+		}
+		CalculateAO_Pitch();
+	}
 
 	HideCameraIFCharacterClose();
 }
@@ -206,6 +222,7 @@ void AZeusCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	// DOREPLIFETIME(AZeusCharacter, OverlappingWeapon);
 	// COND_OwnerOnly: 这是复制条件，表示该变量只会复制给拥有该角色的客户端。
 	DOREPLIFETIME_CONDITION(AZeusCharacter, OverlappingWeapon, COND_OwnerOnly);
+	DOREPLIFETIME(AZeusCharacter, Health);
 }
 
 void AZeusCharacter::PostInitializeComponents()
@@ -355,12 +372,21 @@ void AZeusCharacter::AimButtonReleased()
 	}
 }
 
+
+float AZeusCharacter::CalculateSpeed()
+{
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	return Velocity.Size();
+}
+
+
 void AZeusCharacter::AimOffset(float DeltaTime)
 {
 	if (Combat && Combat->EquipedWeapon == nullptr) return;
 	FVector Velocity =GetVelocity();
 	Velocity.Z = 0.f;
-	float  Speed = Velocity.Size();
+	float  Speed = CalculateSpeed();
 
 	bool bIsInAir = GetCharacterMovement()->IsFalling();
 
@@ -371,6 +397,7 @@ void AZeusCharacter::AimOffset(float DeltaTime)
 	if (Speed == 0.f && !bIsInAir)
 	{
 		// 获取当前的鼠标旋转值的yaw值
+		bRotateRootBone = true;
 		FRotator CurrentAimRotation= FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		// 计算鼠标旋转值和角色移动后停下来的值的差异，也就是yaw值的差值
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation,StartingAimRotation);
@@ -390,6 +417,7 @@ void AZeusCharacter::AimOffset(float DeltaTime)
 
 	if (Speed > 0.f || bIsInAir)
 	{
+		bRotateRootBone = false;
 		// 更新角色移动时或空中时的旋转值。其实只用角色停下来的那一帧,始终获取角色朝向正面的																		// 		为什么差值能表示瞄准偏移
 		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);																//		当角色停止移动时，StartingAimRotation 记录了角色停止时的瞄准方向。
 		// 关闭瞄准偏移																																					//		之后，任何鼠标移动都会改变 CurrentAimRotation，但 StartingAimRotation 保持不变。
@@ -401,6 +429,12 @@ void AZeusCharacter::AimOffset(float DeltaTime)
 	
 	}																																												//		这表示角色在静止状态下，瞄准方向相对于停止时的方向偏移了 30 度。
 
+	CalculateAO_Pitch();
+	
+}
+
+void AZeusCharacter::CalculateAO_Pitch()
+{
 	AO_Pitch = GetBaseAimRotation().Pitch;
 	if (AO_Pitch > 90.f && !IsLocallyControlled())
 	{
@@ -411,7 +445,44 @@ void AZeusCharacter::AimOffset(float DeltaTime)
 		// 如果 AO_Pitch 在 270 到 360 度之间，它会被映射到 -90 到 0 度之间。
 		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);;
 	}
+}
+
+void AZeusCharacter::SimProxiesTurn()
+{
+	if (Combat == nullptr || Combat->EquipedWeapon == nullptr)return;
+	bRotateRootBone = false;
+	float Speed = CalculateSpeed();
+	if (Speed > 0.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		return;
+	}
+
+
+	bRotateRootBone = false; 
+
 	
+	ProxyRotationLastFrame = ProxyRotation;
+	ProxyRotation = GetActorRotation();
+	ProxyYaw=UKismetMathLibrary::NormalizedDeltaRotator(ProxyRotation, ProxyRotationLastFrame).Yaw;
+
+	if (FMath::Abs(ProxyYaw) > TurnThreshold)
+	{
+		if (ProxyYaw > TurnThreshold)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_RIght;
+		}
+		else if(ProxyYaw<-TurnThreshold)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_Left;
+		}
+		else
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		}
+		return;
+	}
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 }
 
 void AZeusCharacter::Jump()
@@ -507,6 +578,8 @@ void AZeusCharacter::FireButtonReleased()
 	}
 }
 
+
+
 void AZeusCharacter::PlayFireMontage(bool bAiming)
 {
 	if (Combat == nullptr || Combat->EquipedWeapon == nullptr) return;
@@ -548,4 +621,15 @@ void AZeusCharacter::PlayHitReactMontage()
 
 }
 
+void AZeusCharacter::OnRep_ReplicatedMovement()
+{
+	Super::OnRep_ReplicatedMovement();
+	SimProxiesTurn();
+	 TimeSinceLastMovementReplication = 0.f;
+}
 
+
+void AZeusCharacter::OnRep_Health()
+{
+
+}

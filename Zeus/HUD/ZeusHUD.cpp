@@ -2,6 +2,32 @@
 
 
 #include "ZeusHUD.h"
+#include "GameFramework/PlayerController.h"
+#include "CharacterOverlay.h"
+
+
+
+void AZeusHUD::BeginPlay()
+{
+	Super::BeginPlay();
+	AddCharacterOverlay();
+}
+
+void AZeusHUD::AddCharacterOverlay()
+{
+	// GetOwningPlayerController得到这个 UserWidget 所属的 PlayerController
+	APlayerController* PlayerController = GetOwningPlayerController();
+	if (PlayerController)
+	{
+		// CreateWidget 是一个模板函数，用于创建指定类型的 Widget。它会根据传入的 CharacterOverlayClass 子类信息，
+		// 实例化一个 UCharacterOverlay 对象，并将其绑定到 PlayerController。CharacterOverlayClass 子类是通过在蓝图里自定义设置的
+		CharacterOverlay = CreateWidget<UCharacterOverlay>(PlayerController, CharacterOverlayClass);
+		
+		// AddToViewport 函数将创建好的 Widget 添加到游戏的视口（屏幕上），使其可见。这通常用于显示 HUD（Head-Up Display）或其他 UI 元素。
+		CharacterOverlay->AddToViewport();
+	}
+}
+
 
 // DrawHUD 函数负责基础的绘制环境设置和初步绘制，而子类可以通过重写 DrawHUD 添加自定义的HUD元素。
 // 在这个函数中做的绘制每帧都会清除掉再重绘
@@ -52,6 +78,8 @@ void AZeusHUD::DrawHUD()
 		}
 	}
 }
+
+
 
 void AZeusHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCenter,FVector2D Spread, FLinearColor CrosshairColor)
 {

@@ -61,6 +61,16 @@ public:
 	UPROPERTY(EditAnywhere)
 	float ZoomInterpSpeed = 20.f;
 
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	// 开火速率
+	float FireDelay = .15f;
+
+	// 设置哪些武器能自动开火
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	bool bAutomatic = true;
+
+
 protected:
 
 	virtual void BeginPlay() override;

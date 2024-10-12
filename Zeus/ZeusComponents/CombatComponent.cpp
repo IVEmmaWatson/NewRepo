@@ -10,6 +10,7 @@
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Zeus/PlayerController/ZeusPlayerController.h"
+#include "TimerManager.h"
 #include "Camera/CameraComponent.h"
 
 
@@ -148,17 +149,57 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 void UCombatComponent::FireButtonPressed(bool bPressed)
 {
 	bFireButtonPressed = bPressed; 
-	if (bFireButtonPressed)
+	if (bFireButtonPressed&&EquipedWeapon)
 	{
 		// HitResult用来存储射线命中的目标信息
-		FHitResult HitResult;
-		TraceUnderCorsshairs(HitResult);
-		ServerFire(HitResult.ImpactPoint);
+		
+		Fire();
+	}
+}
+
+void UCombatComponent::Fire()
+{
+
+	if (bCanFire)
+	{
+		bCanFire = false;
+		ServerFire(HitTarget);
 
 		if (EquipedWeapon)
 		{
 			CrosshairShootingFactor = 0.52f;
 		}
+		StartFireTimer();
+	}
+	
+}
+
+// 假设 FireDelay 设置为1秒，那么当玩家按下开火按钮时，定时器会开始计时，
+// 1秒后调用 FireTimerFinished 函数。FireTimerFinished 函数会检查是否需要再次开火，或者停止定时器以防止连续开火。
+
+
+void UCombatComponent::StartFireTimer()
+{
+	if (EquipedWeapon == nullptr || Character == nullptr) return;
+	Character->GetWorldTimerManager().SetTimer(
+		// 这是一个 FTimerHandle 类型的变量，用于存储和管理这个定时器的句柄。
+		FireTimer,
+		// 这是一个指向当前对象的指针，即 UCombatComponent 实例。
+		this,
+		// 这是一个函数指针，指向 UCombatComponent 类中的 FireTimerFinished 函数。
+		&UCombatComponent::FireTimerFinished,
+		// 这是定时器的延迟时间,定时器将等待指定的时间，然后触发 FireTimerFinished 函数。
+		EquipedWeapon->FireDelay
+	);
+}
+
+void UCombatComponent::FireTimerFinished()
+{
+	if (EquipedWeapon == nullptr) return;
+	bCanFire = true;
+	if (bFireButtonPressed && EquipedWeapon->bAutomatic)
+	{
+		Fire();
 	}
 }
 
@@ -405,3 +446,4 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 		Character->GetFollowCamera()->SetFieldOfView(CurrentFOV);
 	}
 }
+

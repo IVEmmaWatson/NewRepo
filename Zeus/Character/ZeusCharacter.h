@@ -33,10 +33,22 @@ protected:
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime);
+	void CalculateAO_Pitch();
+	void SimProxiesTurn();
 	virtual void Jump() override;
 	void FireButtonPressed();
 	void FireButtonReleased();
+	float CalculateSpeed();
 
+	// 角色生命值
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	float MaxHealth = 100.f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Health, VisibleAnywhere,Category = "Player Stats")
+	float Health = 100.f;
+
+	UFUNCTION()
+	void OnRep_Health();
 public:	
 	// Called every frame
 	// 这个函数每一帧都会被调用，用于更新对象的状态。DeltaTime 参数表示自上一帧以来经过的时间（以秒为单位），
@@ -70,6 +82,9 @@ public:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastHit();
 
+	// ReplicatedMovement 通常包含角色或物体的位置、旋转、速度等信息。
+	// 当这些属性在服务器上发生变化时，函数会将这些变化同步到客户端。
+	virtual void OnRep_ReplicatedMovement() override;
 private:
 	// 定义变量的属性，如控制变量在编辑器中的可见性、可编辑性，以及它们在蓝图中的访问权限
 	// 设置VisibleAnywhere：在编辑器中可见，但不可编辑。Category：将变量归类到特定类别中，方便在编辑器中组织和查找。
@@ -131,6 +146,14 @@ private:
 	UPROPERTY(EditAnywhere)
 	float CameraThreshold=200.f;
 
+
+	bool bRotateRootBone;
+	float TurnThreshold = 0.5f;
+	FRotator ProxyRotationLastFrame;
+	FRotator ProxyRotation;
+	float ProxyYaw;
+
+	float TimeSinceLastMovementReplication;
 public:
 	// 网络复制的变量，只有在服务器上的属性真的发生变化时才会与客户端通信，告诉客户端该属性变化了
 	// 这里只是通知了客户端属性改变了，并没有通知服务器，Replicated网络复制的工作方式只存在从服务器通知客户端
@@ -153,6 +176,6 @@ public:
 
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-
+	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
 	
 };
