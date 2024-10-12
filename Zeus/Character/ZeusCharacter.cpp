@@ -13,6 +13,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Zeus/Character/ZeusAnimInstance.h"
+#include "Zeus/PlayerController/ZeusPlayerController.h"
 #include "Zeus/Zeus.h"
 
 AZeusCharacter::AZeusCharacter()
@@ -76,7 +77,11 @@ void AZeusCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	
+	ZeusPlayerController = Cast<AZeusPlayerController>(Controller);
+	if (ZeusPlayerController)
+	{
+		ZeusPlayerController->SetHUDHealth(Health, MaxHealth);
+	}
 }
 
 // 只有按W才会触发这个函数，所以你单纯晃鼠标不会获取当前的yaw值，只有按了W才会获取此时鼠标的yaw值

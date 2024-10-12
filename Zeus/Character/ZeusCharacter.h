@@ -49,6 +49,8 @@ protected:
 
 	UFUNCTION()
 	void OnRep_Health();
+
+	class AZeusPlayerController* ZeusPlayerController;
 public:	
 	// Called every frame
 	// 这个函数每一帧都会被调用，用于更新对象的状态。DeltaTime 参数表示自上一帧以来经过的时间（以秒为单位），
