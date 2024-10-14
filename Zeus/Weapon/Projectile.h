@@ -24,6 +24,9 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OhterActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+	// ◊”µØ…À∫¶
+	UPROPERTY(EditAnywhere)
+	float Damage=20.f;
 public:	
 	// Called every frame
 	
@@ -49,4 +52,6 @@ private:
 	// “Ù–ß¿‡
 	UPROPERTY(EditAnywhere)
 	class USoundCue* ImpactSound;
+
+	
 };

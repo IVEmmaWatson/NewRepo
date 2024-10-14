@@ -83,6 +83,8 @@ void AProjectile::BeginPlay()
 // 
 void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OhterActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+
+	/*
 	AZeusCharacter* ZeusCharacter = Cast<AZeusCharacter>(OhterActor);
 
 	if (ZeusCharacter)
@@ -90,7 +92,7 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OhterActor, UPrimi
 		ZeusCharacter->ServerHit();
 	}
 
-
+	*/
 
 
 

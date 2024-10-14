@@ -15,6 +15,8 @@
 #include "Zeus/Character/ZeusAnimInstance.h"
 #include "Zeus/PlayerController/ZeusPlayerController.h"
 #include "Zeus/Zeus.h"
+#include "Zeus/GameMode/ZeusGameMode.h"
+#include "TimerManager.h"
 
 AZeusCharacter::AZeusCharacter()
 {
@@ -70,6 +72,8 @@ AZeusCharacter::AZeusCharacter()
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	NetUpdateFrequency = 66.f;
 	MinNetUpdateFrequency = 33.f;
+
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 }
 
 
@@ -77,7 +81,17 @@ void AZeusCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	ZeusPlayerController = Cast<AZeusPlayerController>(Controller);
+	UpdateHUDHealth();
+	if (HasAuthority())
+	{
+		// OnTakeAnyDamage是多播委托类型，用于广播接收到的伤害事件
+		OnTakeAnyDamage.AddDynamic(this, &AZeusCharacter::ReceiveDamage);
+	}
+}
+
+void AZeusCharacter::UpdateHUDHealth()
+{
+	ZeusPlayerController = ZeusPlayerController == nullptr ? Cast<AZeusPlayerController>(Controller) : ZeusPlayerController;
 	if (ZeusPlayerController)
 	{
 		ZeusPlayerController->SetHUDHealth(Health, MaxHealth);
@@ -145,6 +159,10 @@ void AZeusCharacter::LookUp(float Value)
 	// 上下看，控制俯仰视角的角度
 	AddControllerPitchInput(Value);
 }
+
+
+
+
 
 
 
@@ -386,6 +404,8 @@ float AZeusCharacter::CalculateSpeed()
 }
 
 
+
+
 void AZeusCharacter::AimOffset(float DeltaTime)
 {
 	if (Combat && Combat->EquipedWeapon == nullptr) return;
@@ -529,7 +549,7 @@ void AZeusCharacter::TurnInPlace(float DeltaTime)
 	}
 }
 
-
+/*
 void AZeusCharacter::ServerHit_Implementation()
 {
 	MulticastHit();
@@ -540,6 +560,7 @@ void AZeusCharacter::MulticastHit_Implementation()
 {
 	PlayHitReactMontage();
 }
+*/
 
 void AZeusCharacter::HideCameraIFCharacterClose()
 {
@@ -623,8 +644,10 @@ void AZeusCharacter::PlayHitReactMontage()
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
 
-
+	
 }
+
+
 
 void AZeusCharacter::OnRep_ReplicatedMovement()
 {
@@ -634,7 +657,146 @@ void AZeusCharacter::OnRep_ReplicatedMovement()
 }
 
 
+
+
 void AZeusCharacter::OnRep_Health()
 {
 
+	UpdateHUDHealth();
+	
+	// 手机动画有问题bug
+	PlayHitReactMontage();
+
+	
+}
+
+void AZeusCharacter::ReceiveDamage(AActor* DamgedActor, float Damage, const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser)
+{
+
+	
+	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
+	UpdateHUDHealth();
+	
+
+	
+
+	if (Health == 0.f)
+	{
+
+		
+
+		// GetAuthGameMode<AZeusGameMode>() 获取当前世界的 GameMode 实例
+		AZeusGameMode* ZeusGameMode = GetWorld()->GetAuthGameMode<AZeusGameMode>();
+		if (ZeusGameMode)
+		{
+
+			
+
+			// 角色控制器
+			ZeusPlayerController = ZeusPlayerController == nullptr ? Cast<AZeusPlayerController>(Controller) : ZeusPlayerController;
+			// 攻击者的角色控制器
+			AZeusPlayerController* AttackerController = Cast < AZeusPlayerController>(InstigatorController);
+			ZeusGameMode->PlayerEliminated(this, ZeusPlayerController, AttackerController);
+		}
+	}
+	else
+	{
+		PlayHitReactMontage();
+	}
+	
+}
+
+void AZeusCharacter::Elim()
+{
+	if (Combat && Combat->EquipedWeapon)
+	{
+		Combat->EquipedWeapon->Dropped();
+	}
+	MulticastElim();
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this,
+		&AZeusCharacter::ElimTimerFinished,
+		ElimDelay);
+}
+
+
+
+void AZeusCharacter::MulticastElim_Implementation()
+{
+	bElimmed = true;
+	PlayElimMontage();
+
+	// 开始溶解特效
+	// 检查 DissolveMaterialInstance 是否有效，即是否已经分配了基础材质实例。新创建的动态材质实例将基于这个基础材质实例。
+	if (DissolveMaterialInstance)
+	{
+		// 动态材质实例允许在运行时修改材质参数，从而实现动态效果。
+		// this 参数将新创建的动态材质实例与 AZeusCharacter 实例关联。这种关联确保动态材质实例的生命周期与角色实例的生命周期一致。
+		// 通过将动态材质实例与角色实例关联，Unreal Engine 可以更好地管理和释放资源。当角色实例被销毁时，相关联的动态材质实例也会被适当地清理，避免资源泄漏。
+		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+
+		// 将角色的网格材质设置为动态材质实例，以应用溶解效果。
+		GetMesh()->SetMaterial(0, DynamicDissolveMaterialInstance);
+		// 设置材质参数，控制溶解效果的程度。
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), -0.55f);
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Glow"), 200.f);
+	}
+	StartDissolve();
+
+	// 关闭角色移动
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately();
+	// 关闭角色输入
+	if (ZeusPlayerController)
+	{
+		DisableInput(ZeusPlayerController);
+	}
+	// 关闭碰撞
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AZeusCharacter::PlayElimMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ElimMontage)
+	{
+		AnimInstance->Montage_Play(ElimMontage);
+		
+	}
+}
+
+void AZeusCharacter::ElimTimerFinished()
+{
+	AZeusGameMode* ZeusGameMode = GetWorld()->GetAuthGameMode<AZeusGameMode>();
+	if (ZeusGameMode)
+	{
+		ZeusGameMode->RequestRespawn(this, Controller);
+	}
+}
+
+
+void AZeusCharacter::UpdateDissolveMaterial(float DissolveValue)
+{
+	
+	if (DynamicDissolveMaterialInstance)
+	{
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+	}
+}
+
+void AZeusCharacter::StartDissolve()
+{
+	// 委托类型，绑定事件，将 UpdateDissolveMaterial 函数绑定到 DissolveTrack 事件上，以便时间轴更新时调用该函数
+	DissolveTrack.BindDynamic(this, &AZeusCharacter::UpdateDissolveMaterial);
+	// DissolveCurve 这是一个指向浮点曲线的指针。浮点曲线用于定义在时间轴上的数值变化。
+	if (DissolveCurve&& DissolveTimeline)
+	{
+		// DissolveTimeline这是一个时间轴组件，控制动画效果的时间进程。
+		// AddInterpFloat将浮点插值曲线（DissolveCurve）和对应的事件（DissolveTrack）添加到时间轴中，使时间轴能够控制曲线的数值变化。
+		DissolveTimeline->AddInterpFloat(DissolveCurve, DissolveTrack);
+		// 启动时间轴的播放。时间轴将根据曲线定义的数值变化，逐帧更新绑定的事件。
+		DissolveTimeline->Play();
+	}
 }

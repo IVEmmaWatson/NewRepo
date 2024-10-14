@@ -56,7 +56,8 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bAiming = ZeusCharacter->IsAiming();
 	bRotateRootBone = ZeusCharacter->ShouldRotateRootBone();
 	TurningInPlace = ZeusCharacter->GetTurningInPlace();
-	
+	bElimmed = ZeusCharacter->IsElimmed();
+
 	// 获取角色基础的瞄准方向值（是控制器的值，不是角色的方向值），是个方向向量
 	FRotator AimRotation=ZeusCharacter->GetBaseAimRotation();
 	// UKismetMathLibrary::MakeRotFromX这是一个静态函数，用于根据给定的 X 轴向量生成一个旋转值（FRotator 类型）。

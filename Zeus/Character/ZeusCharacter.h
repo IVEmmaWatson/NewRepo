@@ -6,7 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Zeus/ZeusTypes/TurningInPlace.h"
 #include "Zeus/interfaces/InteractWithCrosshairInterface.h"
-
+#include "Components/TimelineComponent.h"
 #include "ZeusCharacter.generated.h"
 
 
@@ -24,6 +24,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	void UpdateHUDHealth();
+
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Turn(float Value);
@@ -40,6 +42,9 @@ protected:
 	void FireButtonReleased();
 	float CalculateSpeed();
 
+	// 接受伤害
+	UFUNCTION()
+	void ReceiveDamage(AActor* DamgedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
 	// 角色生命值
 	UPROPERTY(EditAnywhere, Category = "Player Stats")
 	float MaxHealth = 100.f;
@@ -51,6 +56,44 @@ protected:
 	void OnRep_Health();
 
 	class AZeusPlayerController* ZeusPlayerController;
+
+	bool bElimmed = false;
+
+	FTimerHandle ElimTimer;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ElimDelay = 3.f;
+
+	void ElimTimerFinished();
+
+	/**
+	* 角色溶解特效
+	* 自定义的时间轴事件（Timeline Event）类型，用于处理浮点数值的时间轴轨迹变化。在游戏开发中，这种类型的变量通常用于动画和效果的控制。
+	* FOnTimelineFloat这是一个委托类型（Delegate Type），用于时间轴中浮点数值变化时的事件响应。
+	* 定义了一个浮点数时间轴事件委托，用于处理时间轴中的浮点数值变化。
+	* UTimelineComponent时间轴组件允许你在一定时间范围内控制浮点数、向量和颜色等变量，通常用于动画和效果的实现。
+	*/
+	UPROPERTY(VisibleAnywhere)
+	UTimelineComponent* DissolveTimeline;
+
+	FOnTimelineFloat DissolveTrack;
+
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* DissolveCurve;
+
+	UFUNCTION()
+	void UpdateDissolveMaterial(float DissolveValue);
+	void StartDissolve();
+
+	// Dynamic instance that we can change at runtime
+	// 动态材质实例，可看不可改
+	UPROPERTY(VisibleAnywhere, Category = "Elim")
+	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
+
+	// Material instance set on the Blueprint,used with the dynamic meterial instance
+	// 基础材质实例，可看看课改
+	UPROPERTY(EditAnywhere, Category = "Elim")
+	UMaterialInstance* DissolveMaterialInstance;
 public:	
 	// Called every frame
 	// 这个函数每一帧都会被调用，用于更新对象的状态。DeltaTime 参数表示自上一帧以来经过的时间（以秒为单位），
@@ -72,8 +115,9 @@ public:
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bAiming);
 	void PlayHitReactMontage();
-
-
+	
+	void PlayElimMontage();
+	/*
 	UFUNCTION(Server, Reliable)
 	void ServerHit();
 
@@ -83,10 +127,15 @@ public:
 	// 当某个玩家击中目标时服务器可以调用 MulticastHit 来通知所有客户端播放击中特效,不需要每次都确保每个客户端都能收到这个通知
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastHit();
+	*/
 
 	// ReplicatedMovement 通常包含角色或物体的位置、旋转、速度等信息。
 	// 当这些属性在服务器上发生变化时，函数会将这些变化同步到客户端。
 	virtual void OnRep_ReplicatedMovement() override;
+	void Elim();
+
+	UFUNCTION(NetMulticast,Reliable)
+	void MulticastElim();
 private:
 	// 定义变量的属性，如控制变量在编辑器中的可见性、可编辑性，以及它们在蓝图中的访问权限
 	// 设置VisibleAnywhere：在编辑器中可见，但不可编辑。Category：将变量归类到特定类别中，方便在编辑器中组织和查找。
@@ -138,9 +187,10 @@ private:
 	class UAnimMontage* FireWeaponMontage;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
-	class UAnimMontage* HitReactMontage;
+	UAnimMontage* HitReactMontage;
 
-	
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ElimMontage;
 	
 
 	void HideCameraIFCharacterClose();
@@ -180,4 +230,5 @@ public:
 
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
 	
+	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 };
