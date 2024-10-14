@@ -16,12 +16,13 @@ class ZEUS_API UCharacterOverlay : public UUserWidget
 	
 
 public:
-	// 创建一个进度条类
+	// 创建一个进度条类,必须和蓝图里文本块同名
 	UPROPERTY(meta=(BindWidget))
 	class UProgressBar* HealthBar;
 	// 创建一个文本块类
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* HealthText;
 
-
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* ScoreAmount;
 };

@@ -5,12 +5,24 @@
 #include "Zeus/Character/ZeusCharacter.h"
 #include "Zeus/PlayerController/ZeusPlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Zeus/PlayerState/ZeusPlayerState.h"
 #include "GameFramework/PlayerStart.h"
 
 // 在 Unreal Engine 中，游戏模式类的代码默认只在服务器端运行。原因是游戏模式负责管理游戏的规则和逻辑，这些应该在服务器端统一处理，以保持游戏的一致性。
 // AZeusGameMode 是一个游戏模式类，它的实例在服务器端创建和运行。客户端没有自己的游戏模式实例。
 void AZeusGameMode::PlayerEliminated(AZeusCharacter* EliminatedCharacter, AZeusPlayerController* VictimController, AZeusPlayerController* AttackController)
 {
+	// 攻击者的游戏状态实例
+	AZeusPlayerState* AttackerPlayerState = AttackController ? Cast<AZeusPlayerState>(AttackController->PlayerState) : nullptr;
+	// 淘汰者的游戏状态实例
+	AZeusPlayerState* VictimPlayerState = VictimController ? Cast<AZeusPlayerState>(VictimController->PlayerState) : nullptr;
+
+	// 攻击者涨粉
+	if (AttackerPlayerState && AttackerPlayerState != VictimPlayerState)
+	{
+		AttackerPlayerState->AddToScore(1.f);
+	}
+
 	if (EliminatedCharacter)
 	{
 		EliminatedCharacter->Elim();

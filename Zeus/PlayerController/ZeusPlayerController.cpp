@@ -37,6 +37,19 @@ void AZeusPlayerController::SetHUDHealth(float Health, float MaxHealth)
 	}
 }
 
+void AZeusPlayerController::SetHUDScore(float Score)
+{
+	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
+	bool bHUDValid = ZeusHUD &&
+		ZeusHUD->CharacterOverlay &&
+		ZeusHUD->CharacterOverlay->ScoreAmount;
+	if (bHUDValid)
+	{
+		FString ScoreText = FString::Printf(TEXT("%d"), FMath::FloorToInt(Score));
+		ZeusHUD->CharacterOverlay->ScoreAmount->SetText(FText::FromString(ScoreText));
+	}
+}
+
 // OnPossess 函数在玩家控制器控制一个 Pawn 时被调用。
 void AZeusPlayerController::OnPossess(APawn* InPawn)
 {

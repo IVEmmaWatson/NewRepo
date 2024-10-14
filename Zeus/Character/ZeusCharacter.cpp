@@ -19,6 +19,7 @@
 #include "Zeus/GameMode/ZeusGameMode.h"
 #include "Sound/SoundCue.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Zeus/PlayerState/ZeusPlayerState.h"
 #include "TimerManager.h"
 
 AZeusCharacter::AZeusCharacter()
@@ -89,6 +90,19 @@ void AZeusCharacter::BeginPlay()
 	{
 		// OnTakeAnyDamage是多播委托类型，用于广播接收到的伤害事件
 		OnTakeAnyDamage.AddDynamic(this, &AZeusCharacter::ReceiveDamage);
+	}
+}
+
+// 只是触发一次初始同步，不会改变实际的分数值。
+void AZeusCharacter::PollInit()
+{
+	if (ZeusPlayerState == nullptr)
+	{
+		ZeusPlayerState = GetPlayerState<AZeusPlayerState>();
+		if (ZeusPlayerState)
+		{
+			ZeusPlayerState->AddToScore(0.f);
+		}
 	}
 }
 
@@ -185,6 +199,7 @@ void AZeusCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	PollInit();
 	/*
 	// 每帧检测指针是否为空，因为这个指针只是声明了，没有定义赋值，而定义赋值是在SetOverlappingWeapon函数里的
 	// 而这个函数是在weapon类里检测服务器碰撞到才会更新赋值的，
