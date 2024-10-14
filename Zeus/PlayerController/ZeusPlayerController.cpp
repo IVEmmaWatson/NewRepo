@@ -6,6 +6,7 @@
 #include "Zeus/HUD/CharacterOverlay.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Zeus/Character/ZeusCharacter.h"
 
 void AZeusPlayerController::BeginPlay()
 {
@@ -33,5 +34,17 @@ void AZeusPlayerController::SetHUDHealth(float Health, float MaxHealth)
 		// CeilToInt 函数将浮点数向上取整为整数
 		FString HealthText = FString::Printf(TEXT("%d/%d"), FMath::CeilToInt(Health), FMath::CeilToInt(MaxHealth));
 		ZeusHUD->CharacterOverlay->HealthText->SetText(FText::FromString(HealthText));
+	}
+}
+
+// OnPossess 函数在玩家控制器控制一个 Pawn 时被调用。
+void AZeusPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	AZeusCharacter* ZeusCharacter = Cast<AZeusCharacter>(InPawn);
+	if (ZeusCharacter)
+	{
+		SetHUDHealth(ZeusCharacter->GetHealth(), ZeusCharacter->GetMaxtHealth());
 	}
 }
