@@ -119,6 +119,7 @@ void UCombatComponent::OnRep_EquippedWeapon()
 {
 	if (EquipedWeapon && Character)
 	{
+		// 客户端也执行一遍这个设置武器状态和附加插槽，防止高延迟的情况下客户端需要等待同步，期间武器可能在错误的位置。
 		EquipedWeapon->SetWeaponState(EWeaponState::EWS_Equiped);
 		// 从角色骨骼获取手部插槽
 		// AttachActor：这个方法将一个 Actor 附加到插槽上。

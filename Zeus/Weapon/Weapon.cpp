@@ -16,6 +16,7 @@ AWeapon::AWeapon()
 {
 
 	// 启用Actor或组件的网络复制功能,启用这个weapon组件的的网络复制
+	// 启用了 bReplicates = true 后，这个类的实例会在客户端和服务器之间同步
 	bReplicates = true;
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	// 这行代码用于启用Actor的Tick功能，使其每帧都能执行特定的逻辑。就是每帧都执行下面的tick函数
@@ -109,8 +110,8 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	}
 }
 
-
-// 这个主要用于客户端检测武器状态
+// 这个函数也只会在服务器端执行
+// 这个主要用于检测武器状态
 void AWeapon::SetWeaponState(EWeaponState State)
 {
 	WeaponState = State;
@@ -141,8 +142,8 @@ void AWeapon::SetWeaponState(EWeaponState State)
 }
 
 
-
-// 这个主要用于服务器检测武器状态
+// 这个函数在客户端执行，ReplicatedUsing 变量绑定的函数（也称为回调函数）是在 客户端 执行的。当服务器端的变量发生变化并同步到客户端时，客户端会调用这个回调函数来处理变化。
+// 这个主要用于客户端检测武器状态
 void AWeapon::OnRep_WeaponState()
 {
 	switch (WeaponState)
@@ -233,7 +234,12 @@ void AWeapon::Fire(const FVector& HitTarget)
 void AWeapon::Dropped()
 {
 	SetWeaponState(EWeaponState::EWS_Dropped);
+	//? FDetachmentTransformRules: 这是一个结构体，用来定义从组件分离时的规则。
+	//? EDetachmentRule::KeepWorld: 这是一个枚举值，指示分离时保持世界坐标系不变。也就是说，组件在分离后会保持它在世界坐标系中的位置、旋转和缩放。
+	//? true: 这个参数表示是否希望更新组件的附着（attachment）相关的信息
 	FDetachmentTransformRules DetachRules(EDetachmentRule::KeepWorld, true);
+	//t 这个函数用来将组件从它当前的附着父级分离，使用我们前面定义的 DetachRules。
 	WeaponMesh->DetachFromComponent(DetachRules);
+	// 清除所有者
 	SetOwner(nullptr);
 }

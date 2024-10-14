@@ -94,6 +94,22 @@ protected:
 	// 基础材质实例，可看看课改
 	UPROPERTY(EditAnywhere, Category = "Elim")
 	UMaterialInstance* DissolveMaterialInstance;
+
+	/**
+	* 淘汰动画音效
+	* UParticleSystem定义粒子效果的类 一个粒子系统模板，可以在编辑器中设置和选择具体的粒子效果。
+	*  UParticleSystemComponent是用于在世界中实例化和管理粒子系统的组件。它负责在场景中实际显示和控制粒子效果。
+	*/
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* ElimBotEffect;
+
+	UPROPERTY(VisibleAnywhere)
+	UParticleSystemComponent* ElimBotComponent;
+
+	UPROPERTY(EditAnywhere)
+	class USoundCue* ElimBotSound;
+
+	virtual void Destroyed() override;
 public:	
 	// Called every frame
 	// 这个函数每一帧都会被调用，用于更新对象的状态。DeltaTime 参数表示自上一帧以来经过的时间（以秒为单位），

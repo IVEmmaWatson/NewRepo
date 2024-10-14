@@ -15,7 +15,10 @@
 #include "Zeus/Character/ZeusAnimInstance.h"
 #include "Zeus/PlayerController/ZeusPlayerController.h"
 #include "Zeus/Zeus.h"
+#include "Kismet/GameplayStatics.h"
 #include "Zeus/GameMode/ZeusGameMode.h"
+#include "Sound/SoundCue.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "TimerManager.h"
 
 AZeusCharacter::AZeusCharacter()
@@ -167,6 +170,16 @@ void AZeusCharacter::LookUp(float Value)
 
 
 
+
+void AZeusCharacter::Destroyed()
+{
+	Super::Destroyed();
+
+	if (ElimBotComponent)
+	{
+		ElimBotComponent->DestroyComponent();
+	}
+}
 
 void AZeusCharacter::Tick(float DeltaTime)
 {
@@ -755,6 +768,25 @@ void AZeusCharacter::MulticastElim_Implementation()
 	// 关闭碰撞
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// 生成淘汰特效
+	// 如果设置了粒子特效
+	if (ElimBotEffect)
+	{
+		// 创建一个位置向量，在角色头上200.f处
+		FVector ElimBotSpawnPont(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + 200.f);
+		// UGameplayStatics的静态函数在指定位置生成粒子特效
+		ElimBotComponent=UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(), ElimBotEffect, ElimBotSpawnPont,GetActorRotation()
+		);
+	}
+
+	if (ElimBotSound)
+	{
+		UGameplayStatics::SpawnSoundAtLocation(
+			this, ElimBotSound, GetActorLocation()
+		);
+	}
 }
 
 void AZeusCharacter::PlayElimMontage()
@@ -773,6 +805,12 @@ void AZeusCharacter::ElimTimerFinished()
 	if (ZeusGameMode)
 	{
 		ZeusGameMode->RequestRespawn(this, Controller);
+	}
+
+	// 销毁粒子效果
+	if (ElimBotComponent)
+	{
+		ElimBotComponent->DestroyComponent();
 	}
 }
 
