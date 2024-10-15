@@ -112,6 +112,7 @@ protected:
 
 	virtual void Destroyed() override;
 
+	UPROPERTY()
 	class AZeusPlayerState* ZeusPlayerState;
 public:	
 	// Called every frame

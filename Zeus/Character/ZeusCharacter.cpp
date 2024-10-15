@@ -102,6 +102,7 @@ void AZeusCharacter::PollInit()
 		if (ZeusPlayerState)
 		{
 			ZeusPlayerState->AddToScore(0.f);
+			ZeusPlayerState->AddToDefeats(0);
 		}
 	}
 }

@@ -23,6 +23,12 @@ void AZeusGameMode::PlayerEliminated(AZeusCharacter* EliminatedCharacter, AZeusP
 		AttackerPlayerState->AddToScore(1.f);
 	}
 
+	// Ê§°ÜÕßÕÇ·Û
+	if (VictimPlayerState)
+	{
+		VictimPlayerState->AddToDefeats(1);
+	}
+
 	if (EliminatedCharacter)
 	{
 		EliminatedCharacter->Elim();

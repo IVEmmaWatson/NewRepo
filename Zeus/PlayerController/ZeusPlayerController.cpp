@@ -50,6 +50,19 @@ void AZeusPlayerController::SetHUDScore(float Score)
 	}
 }
 
+void AZeusPlayerController::SetHUDDefeats(int32 Defeats)
+{
+	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
+	bool bHUDValid = ZeusHUD &&
+		ZeusHUD->CharacterOverlay &&
+		ZeusHUD->CharacterOverlay->DefeatsAmount;
+	if (bHUDValid)
+	{
+		FString DefeatsText = FString::Printf(TEXT("%d"), Defeats);
+		ZeusHUD->CharacterOverlay->DefeatsAmount->SetText(FText::FromString(DefeatsText));
+	}
+}
+
 // OnPossess 函数在玩家控制器控制一个 Pawn 时被调用。
 void AZeusPlayerController::OnPossess(APawn* InPawn)
 {
