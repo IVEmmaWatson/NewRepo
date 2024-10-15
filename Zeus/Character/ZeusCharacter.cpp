@@ -753,6 +753,11 @@ void AZeusCharacter::Elim()
 
 void AZeusCharacter::MulticastElim_Implementation()
 {
+	if (ZeusPlayerController)
+	{
+		ZeusPlayerController->SetHUDAmmo(0);
+	}
+
 	bElimmed = true;
 	PlayElimMontage();
 

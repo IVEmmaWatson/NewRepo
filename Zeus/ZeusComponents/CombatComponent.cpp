@@ -42,7 +42,10 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	// 检查角色指针和武器指针是否为空
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
-	 
+	if (EquipedWeapon)
+	{
+		EquipedWeapon->Dropped();
+	 }
 	EquipedWeapon = WeaponToEquip;
 
 	EquipedWeapon->SetWeaponState(EWeaponState::EWS_Equiped);
@@ -56,7 +59,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	}
 	// 设置这个武器实例的拥有者
 	EquipedWeapon->SetOwner(Character);
-	
+	EquipedWeapon->SetHUDAmmo();
 	// 当这个属性为 false 时，角色不会根据移动方向来调整自身的朝向。
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 	// 设置角色跟着控制器旋转，当这个属性为 true时，角色会根据控制器的旋转来调整自身的朝向。

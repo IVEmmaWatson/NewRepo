@@ -4,12 +4,13 @@
 #include "Weapon.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Zeus\Character\ZeusCharacter.h"
+#include "Zeus/PlayerController/ZeusPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Zeus/ZeusComponents/CombatComponent.h"
 #include "Casing.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Zeus/Character/ZeusCharacter.h"
 
 // Sets default values
 AWeapon::AWeapon()
@@ -170,6 +171,8 @@ void AWeapon::OnRep_WeaponState()
 	}
 }
 
+
+
 // Called every frame
 void AWeapon::Tick(float DeltaTime)
 {
@@ -183,6 +186,7 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 
 	// 将这个类的WeaponState变量注册为在网络上可复制
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME(AWeapon, Ammo);
 }
 
 void AWeapon::ShowPickupWidget(bool bShowWidget)
@@ -229,6 +233,7 @@ void AWeapon::Fire(const FVector& HitTarget)
 			}
 		}
 	}
+	SpendRound();
 }
 
 void AWeapon::Dropped()
@@ -242,4 +247,50 @@ void AWeapon::Dropped()
 	WeaponMesh->DetachFromComponent(DetachRules);
 	// 清除所有者
 	SetOwner(nullptr);
+	ZeusOwnerCharacter = nullptr;
+	ZeusOwnerPlayerController = nullptr;
+}
+
+// 函数重载，当weapon实例对象的拥有者改变时客户端自动调用
+void AWeapon::OnRep_Owner()
+{
+	Super::OnRep_Owner();
+	if (Owner == nullptr)
+	{
+		ZeusOwnerCharacter = nullptr;
+		ZeusOwnerPlayerController = nullptr;
+	}
+	else
+	{
+		SetHUDAmmo();
+	}
+	
+}
+
+// 初始化设置武器子弹的拥有者信息
+void AWeapon::SetHUDAmmo()
+{
+	ZeusOwnerCharacter = ZeusOwnerCharacter == nullptr ? Cast<AZeusCharacter>(GetOwner()) : ZeusOwnerCharacter;
+	if (ZeusOwnerCharacter)
+	{
+		ZeusOwnerPlayerController = ZeusOwnerPlayerController == nullptr ? Cast<AZeusPlayerController>(ZeusOwnerCharacter->Controller) : ZeusOwnerPlayerController;
+		if (ZeusOwnerPlayerController)
+		{
+			ZeusOwnerPlayerController->SetHUDAmmo(Ammo);
+		}
+	}
+}
+
+
+
+
+void AWeapon::SpendRound()
+{
+	--Ammo;
+	SetHUDAmmo();
+}
+
+void AWeapon::OnRep_Ammo()
+{
+	SetHUDAmmo();
 }

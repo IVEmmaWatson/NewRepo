@@ -50,6 +50,7 @@ void AZeusPlayerController::SetHUDScore(float Score)
 	}
 }
 
+// 失败计数
 void AZeusPlayerController::SetHUDDefeats(int32 Defeats)
 {
 	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
@@ -60,6 +61,20 @@ void AZeusPlayerController::SetHUDDefeats(int32 Defeats)
 	{
 		FString DefeatsText = FString::Printf(TEXT("%d"), Defeats);
 		ZeusHUD->CharacterOverlay->DefeatsAmount->SetText(FText::FromString(DefeatsText));
+	}
+}
+
+// 子弹计数
+void AZeusPlayerController::SetHUDAmmo(int32 Ammo)
+{
+	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
+	bool bHUDValid = ZeusHUD &&
+		ZeusHUD->CharacterOverlay &&
+		ZeusHUD->CharacterOverlay->WeaponAmmoAmount;
+	if (bHUDValid)
+	{
+		FString AmmoText = FString::Printf(TEXT("%d"), Ammo);
+		ZeusHUD->CharacterOverlay->WeaponAmmoAmount->SetText(FText::FromString(AmmoText));
 	}
 }
 

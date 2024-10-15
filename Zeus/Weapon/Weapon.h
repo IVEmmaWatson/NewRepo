@@ -38,7 +38,8 @@ public:
 	void SetWeaponState(EWeaponState State);
 	virtual void Fire(const FVector& HitTarget);
 	void Dropped();
-
+	virtual	void OnRep_Owner() override;
+	void SetHUDAmmo();
 
 	// UTexture2D：这是Unreal Engine中的一个类，代表2D纹理。这些纹理通常用于游戏中的图像，如HUD元素、角色纹理等。
 	UPROPERTY(EditAnywhere, Category = "Crosshairs")
@@ -123,7 +124,23 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class ACasing> CasingClass;
 
-	
+	// 子弹数量
+	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_Ammo)
+	int32 Ammo;
+
+	UPROPERTY(EditAnywhere)
+	int32 MagCapacity;
+
+	UFUNCTION()
+	void OnRep_Ammo();
+
+	UFUNCTION()
+	void SpendRound();
+
+	UPROPERTY()
+	class AZeusCharacter* ZeusOwnerCharacter;
+	UPROPERTY()
+	class AZeusPlayerController* ZeusOwnerPlayerController;
 public:
 	// 设置武器状态
 	 
