@@ -286,8 +286,14 @@ void AWeapon::SetHUDAmmo()
 
 void AWeapon::SpendRound()
 {
-	--Ammo;
+	// 用于限制数值在指定的最小值和最大值范围内。要被限制的数值-限制最小值-限制最大值
+	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
 	SetHUDAmmo();
+}
+
+bool AWeapon::IsEmpty()
+{
+	return Ammo <= 0;
 }
 
 void AWeapon::OnRep_Ammo()

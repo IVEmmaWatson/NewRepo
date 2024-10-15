@@ -174,7 +174,7 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 void UCombatComponent::Fire()
 {
 
-	if (bCanFire)
+	if (CanFire())
 	{
 		bCanFire = false;
 		ServerFire(HitTarget);
@@ -215,6 +215,13 @@ void UCombatComponent::FireTimerFinished()
 	{
 		Fire();
 	}
+}
+
+bool UCombatComponent::CanFire()
+{
+	if (EquipedWeapon == nullptr) return false;
+	// 如果子弹不为空，和bCanFire为能开枪
+	return !EquipedWeapon->IsEmpty() && bCanFire;
 }
 
 //t FHitResult是一个包含了射线检测命中的详细信息。成员变量ImpactPoint：命中的位置。Normal：命中点的法线。Actor：命中的 Actor。Component：命中的组件。
