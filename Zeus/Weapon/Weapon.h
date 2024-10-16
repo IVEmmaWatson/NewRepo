@@ -77,6 +77,8 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	class USoundCue* EquipSound;
+
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -147,6 +149,8 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
+
+	
 public:
 	// …Ë÷√Œ‰∆˜◊¥Ã¨
 	 

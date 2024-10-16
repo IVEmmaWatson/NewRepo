@@ -85,6 +85,11 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 		);
 	}
 
+	if (EquipedWeapon->IsEmpty())
+	{
+		Reload();
+	}
+
 	// 当这个属性为 false 时，角色不会根据移动方向来调整自身的朝向。
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 	// 设置角色跟着控制器旋转，当这个属性为 true时，角色会根据控制器的旋转来调整自身的朝向。
@@ -352,6 +357,10 @@ void UCombatComponent::FireTimerFinished()
 	if (bFireButtonPressed && EquipedWeapon->bAutomatic)
 	{
 		Fire();
+	}
+	if (EquipedWeapon->IsEmpty())
+	{
+		Reload();
 	}
 }
 

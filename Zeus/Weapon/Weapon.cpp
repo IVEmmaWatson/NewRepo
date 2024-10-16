@@ -307,4 +307,6 @@ bool AWeapon::IsEmpty()
 void AWeapon::OnRep_Ammo()
 {
 	SetHUDAmmo();
+	
 }
+
