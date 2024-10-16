@@ -15,6 +15,7 @@ void AZeusPlayerController::BeginPlay()
 	ZeusHUD = Cast<AZeusHUD>(GetHUD());
 }
 
+
 void AZeusPlayerController::SetHUDHealth(float Health, float MaxHealth)
 {
 	// 这样做的原因是，在 SetHUDHealth 被调用时，不能保证 ZeusHUD 指针一直有效。例如，HUD 可能会在游戏运行过程中被重置或改变
@@ -92,6 +93,8 @@ void AZeusPlayerController::SetHUDCarriedAmmo(int32 Ammo)
 
 }
 
+
+
 // OnPossess 函数在玩家控制器控制一个 Pawn 时被调用。
 void AZeusPlayerController::OnPossess(APawn* InPawn)
 {
@@ -102,4 +105,44 @@ void AZeusPlayerController::OnPossess(APawn* InPawn)
 	{
 		SetHUDHealth(ZeusCharacter->GetHealth(), ZeusCharacter->GetMaxtHealth());
 	}
+}
+
+void AZeusPlayerController::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	SetHUDTime();
+
+}
+
+void AZeusPlayerController::SetHUDMatchCountdown(float CountdownTime)
+{
+	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
+	bool bHUDValid = ZeusHUD &&
+		ZeusHUD->CharacterOverlay &&
+		ZeusHUD->CharacterOverlay->MatchCountdownText;
+	if (bHUDValid)
+	{
+		// CountdownTime总秒数时间，Minutes分钟，
+		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+		// 总秒数-总分中的秒数结果就是剩余的秒数
+		int32 Seconds = CountdownTime - Minutes * 60;
+
+		FString CountdownText=FString::Printf(TEXT("%02d:%02d"),Minutes,Seconds);
+		ZeusHUD->CharacterOverlay->MatchCountdownText->SetText(FText::FromString(CountdownText));
+	}
+}
+
+
+void AZeusPlayerController::SetHUDTime()
+{
+	// 计算剩余时间秒数
+	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetWorld()->GetTimeSeconds());
+	// 如果当前秒数与剩余秒数不相等，说明一秒过去了，该更新了
+	if (CountdownInt != SecondsLeft)
+	{
+		SetHUDMatchCountdown(MatchTime - GetWorld()->GetTimeSeconds());
+	}
+	// 将剩余秒数存下来
+	CountdownInt = SecondsLeft;
 }
