@@ -281,6 +281,14 @@ void AWeapon::SetHUDAmmo()
 	}
 }
 
+void AWeapon::AddAmmo(int32 AmmoToAdd)
+{
+	// 这里传进来的AmmoToAdd是负数，所以其实是加上要补充的子弹数量
+	Ammo = FMath::Clamp(Ammo - AmmoToAdd, 0, MagCapacity);
+	// 更新hud显示
+	SetHUDAmmo();
+}
+
 
 
 

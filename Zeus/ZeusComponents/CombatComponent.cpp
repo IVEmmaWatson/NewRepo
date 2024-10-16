@@ -11,6 +11,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Zeus/PlayerController/ZeusPlayerController.h"
 #include "TimerManager.h"
+#include "Sound/SoundCue.h"
 #include "Camera/CameraComponent.h"
 
 
@@ -35,6 +36,8 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(UCombatComponent, EquipedWeapon);
 	DOREPLIFETIME(UCombatComponent, bAiming);
+	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo,COND_OwnerOnly);
+	DOREPLIFETIME(UCombatComponent, CombatState);
 }
 
 // 这个函数只会在服务器上执行
@@ -60,12 +63,132 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	// 设置这个武器实例的拥有者
 	EquipedWeapon->SetOwner(Character);
 	EquipedWeapon->SetHUDAmmo();
+
+	if (CarriedAmmoMap.Contains(EquipedWeapon->GetWeaponType()))
+	{
+		CarriedAmmo=CarriedAmmoMap[EquipedWeapon->GetWeaponType()];
+	}
+
+
+	Controller = Controller == nullptr ? Cast<AZeusPlayerController>(Character->Controller) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+	}
+
+	if (EquipedWeapon->EquipSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this, 
+			EquipedWeapon->EquipSound, 
+			Character->GetActorLocation()
+		);
+	}
+
 	// 当这个属性为 false 时，角色不会根据移动方向来调整自身的朝向。
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 	// 设置角色跟着控制器旋转，当这个属性为 true时，角色会根据控制器的旋转来调整自身的朝向。
 	Character->bUseControllerRotationYaw = true;
 }
 
+void UCombatComponent::Reload()
+{
+	if (CarriedAmmo > 0 && CombatState!=ECombatState::ECS_Reloading)
+	{
+		ServerReload();
+	}
+}
+
+void UCombatComponent::ServerReload_Implementation()
+{
+	if (Character == nullptr || EquipedWeapon==nullptr) return;
+
+	
+	CombatState = ECombatState::ECS_Reloading;
+	HandleReload();
+}
+
+void UCombatComponent::OnRep_CombatState()
+{
+	switch (CombatState)
+	{
+	case ECombatState::ECS_Unoccupied:
+		if (bFireButtonPressed)
+		{
+			Fire();
+		}
+		break;
+	case ECombatState::ECS_Reloading:
+		HandleReload();
+		break;
+	case ECombatState::ECS_MAX:
+		break;
+	default:
+		break;
+	}
+}
+
+
+
+
+void UCombatComponent::HandleReload()
+{
+	Character->PlayReloadMontage();
+}
+
+int32 UCombatComponent::AmountToReload()
+{
+	if (EquipedWeapon == nullptr) return 0;
+	// 获取当前弹夹容量,还可以装多少发子弹
+	int32 RoomInMag = EquipedWeapon->GetMagCapactiy() - EquipedWeapon->GetAmmo();
+	// 检查：CarriedAmmoMap 中是否包含当前武器类型的备用弹药。
+	if (CarriedAmmoMap.Contains(EquipedWeapon->GetWeaponType()))
+	{
+		// 获取：如果包含，获取该武器类型的备用弹药数量 (AmountCarried)。
+		int32 AmountCarried = CarriedAmmoMap[EquipedWeapon->GetWeaponType()];
+		// 计算 RoomInMag（弹夹中的空位）和 AmountCarried（携带的备用弹药数量）之间的最小值 (Least)。
+		int32 Least = FMath::Min(RoomInMag, AmountCarried);
+		// 使用 FMath::Clamp 确保返回值在 0 到 Least 之间。
+		return FMath::Clamp(RoomInMag, 0, Least);
+	}
+	return 0;
+}
+
+void UCombatComponent::FinishReloading()
+{
+	if (Character == nullptr) return;
+	if (Character->HasAuthority())
+	{
+		CombatState = ECombatState::ECS_Unoccupied;
+		UpdateAmmoValues();
+	}
+	
+	if (bFireButtonPressed)
+	{
+		Fire();
+	}
+}
+
+void UCombatComponent::UpdateAmmoValues()
+{
+	if (Character == nullptr || EquipedWeapon == nullptr) return;
+
+	int32 ReloadAmount = AmountToReload();
+	// 更新备用弹夹数量
+	if (CarriedAmmoMap.Contains(EquipedWeapon->GetWeaponType()))
+	{
+		// 备用弹夹map的值给CarriedAmmo变量更新
+		CarriedAmmoMap[EquipedWeapon->GetWeaponType()] -= ReloadAmount;
+		CarriedAmmo = CarriedAmmoMap[EquipedWeapon->GetWeaponType()];
+	}
+	// 更新hud显示
+	Controller = Controller == nullptr ? Cast<AZeusPlayerController>(Character->Controller) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+	}
+	EquipedWeapon->AddAmmo(-ReloadAmount);
+}
 
 // Called when the game starts
 void UCombatComponent::BeginPlay()
@@ -82,6 +205,11 @@ void UCombatComponent::BeginPlay()
 			// 获取相机的默认视野值
 			DefaultFOV = Character->GetFollowCamera()->FieldOfView;
 			CurrentFOV = DefaultFOV;
+		}
+
+		if (Character->HasAuthority())
+		{
+			InitializeCarriedAmmo();
 		}
 	}
 
@@ -133,10 +261,20 @@ void UCombatComponent::OnRep_EquippedWeapon()
 			HandSocket->AttachActor(EquipedWeapon, Character->GetMesh());
 		}
 
+
 		// 当这个属性为 false 时，角色不会根据移动方向来调整自身的朝向。
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		// 设置角色跟着控制器旋转，当这个属性为 true时，角色会根据控制器的旋转来调整自身的朝向。
 		Character->bUseControllerRotationYaw = true;
+
+		if (EquipedWeapon->EquipSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				EquipedWeapon->EquipSound,
+				Character->GetActorLocation()
+			);
+		}
 	}
 }
 
@@ -221,8 +359,10 @@ bool UCombatComponent::CanFire()
 {
 	if (EquipedWeapon == nullptr) return false;
 	// 如果子弹不为空，和bCanFire为能开枪
-	return !EquipedWeapon->IsEmpty() && bCanFire;
+	return !EquipedWeapon->IsEmpty() && bCanFire&&CombatState==ECombatState::ECS_Unoccupied;
 }
+
+
 
 //t FHitResult是一个包含了射线检测命中的详细信息。成员变量ImpactPoint：命中的位置。Normal：命中点的法线。Actor：命中的 Actor。Component：命中的组件。
 // TraceHitResult参数要手动定义和传参
@@ -343,7 +483,7 @@ void UCombatComponent::TraceUnderCorsshairs(FHitResult& TraceHitResult)
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize TraceHitTarget)
 {
 	if (EquipedWeapon == nullptr) return;
-	if (Character )
+	if (Character&&CombatState==ECombatState::ECS_Unoccupied )
 	{
 		Character->PlayFireMontage(bAiming);
 		
@@ -448,6 +588,10 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 	}
 }
 
+
+
+
+
 void UCombatComponent::InterpFOV(float DeltaTime)
 {
 	if (EquipedWeapon == nullptr) return;
@@ -467,4 +611,22 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 		Character->GetFollowCamera()->SetFieldOfView(CurrentFOV);
 	}
 }
+
+void UCombatComponent::OnRep_CarriedAmmo()
+{
+	
+	Controller = Controller == nullptr ? Cast<AZeusPlayerController>(Character->Controller) : Controller;
+		if (Controller)
+		{
+			Controller->SetHUDCarriedAmmo(CarriedAmmo);
+		}
+}
+
+void UCombatComponent::InitializeCarriedAmmo()
+{
+	// 初始化字典map键值对，将ak步枪的弹夹设置为30个
+	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingARAmmo);
+
+}
+
 

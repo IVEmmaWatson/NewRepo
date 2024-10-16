@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Zeus/HUD/ZeusHUD.h"
+#include "Zeus/Weapon/WeaponTypes.h"
+#include "Zeus/ZeusTypes/CombatState.h"
 #include "CombatComponent.generated.h"
 
 
@@ -26,6 +28,7 @@ public:
 	// 装备武器，需要一个武器的指针 
 	void EquipWeapon(class AWeapon* WeaponToEquip);
 
+	void Reload();
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -53,6 +56,15 @@ public:
 	void TraceUnderCorsshairs(FHitResult& TraceHitResult);
 
 	void SetHUDCrosshairs(float DeltaTime);
+
+	UFUNCTION(Server,Reliable)
+	void ServerReload();
+
+	void HandleReload();
+	int32 AmountToReload();
+	
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
 private:
 	// 声明角色和武器类的指针，还没有实例化
 	class AZeusCharacter* Character;
@@ -115,6 +127,28 @@ private:
 	void	FireTimerFinished();
 
 	bool CanFire();
+
+	UPROPERTY(ReplicatedUsing = OnRep_CarriedAmmo)
+	int32 CarriedAmmo;
+
+	UFUNCTION()
+	void OnRep_CarriedAmmo();
+
+	// 存储武器类型的字典
+	TMap<EWeaponType, int32> CarriedAmmoMap;
+
+	// 弹夹数量
+	UPROPERTY(EditAnywhere)
+	int32 StartingARAmmo = 30;
+	void InitializeCarriedAmmo();
+
+	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
+	ECombatState CombatState=ECombatState::ECS_Unoccupied;
+
+	UFUNCTION()
+	void OnRep_CombatState();
+
+	void UpdateAmmoValues();
 public:
 
 };

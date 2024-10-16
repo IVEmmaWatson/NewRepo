@@ -21,6 +21,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Zeus/PlayerState/ZeusPlayerState.h"
 #include "TimerManager.h"
+#include "Zeus/Weapon/WeaponTypes.h"
 
 AZeusCharacter::AZeusCharacter()
 {
@@ -261,6 +262,8 @@ void AZeusCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	// 绑定鼠标左键开火动作
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ThisClass::FireButtonPressed);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ThisClass::FireButtonReleased);
+
+	PlayerInputComponent->BindAction("Reload", IE_Released, this, &ThisClass::ReloadButtonPressed);
 }
 
 // GetLifetimeReplicatedProps用于注册一个类的网络同步属性
@@ -392,6 +395,8 @@ FVector AZeusCharacter::GetHitTarget() const
 }
 
 
+
+
 void AZeusCharacter::CrouchButtonPressed()
 {
 	// 检查是否已经是蹲下状态
@@ -404,6 +409,14 @@ void AZeusCharacter::CrouchButtonPressed()
 	else
 	{
 		Crouch();
+	}
+}
+
+void AZeusCharacter::ReloadButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->Reload();
 	}
 }
 
@@ -678,6 +691,7 @@ void AZeusCharacter::PlayHitReactMontage()
 
 
 
+
 void AZeusCharacter::OnRep_ReplicatedMovement()
 {
 	Super::OnRep_ReplicatedMovement();
@@ -858,4 +872,37 @@ void AZeusCharacter::StartDissolve()
 		// 启动时间轴的播放。时间轴将根据曲线定义的数值变化，逐帧更新绑定的事件。
 		DissolveTimeline->Play();
 	}
+}
+
+
+
+void AZeusCharacter::PlayReloadMontage()
+{
+	if (Combat == nullptr || Combat->EquipedWeapon == nullptr) return;
+
+	// 这行代码获取角色的动画实例（UAnimInstance），用于控制动画的播放。
+	// 动画实例是用来播放复杂的动画序列，简单的动画可以直接用骨骼组件调用playanimantion
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	// 检查 AnimInstance 和 FireWeaponMontage 是否有效。如果有效，则播放 FireWeaponMontage 动画蒙太奇。
+	if (AnimInstance &&ReloadMontage)
+	{
+		AnimInstance->Montage_Play(ReloadMontage);
+		// 这里的SectionName要用蒙太奇动画的蓝色的片段名称
+		FName SectionName;
+		switch (Combat->EquipedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		}
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+
+}
+
+
+ECombatState AZeusCharacter::GetCombatState() const
+{
+	if (Combat == nullptr) return ECombatState::ECS_MAX;
+	return Combat->CombatState;
 }

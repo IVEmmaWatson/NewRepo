@@ -7,6 +7,7 @@
 #include "Zeus/ZeusTypes/TurningInPlace.h"
 #include "Zeus/interfaces/InteractWithCrosshairInterface.h"
 #include "Components/TimelineComponent.h"
+#include	"Zeus/ZeusTypes/CombatState.h"
 #include "ZeusCharacter.generated.h"
 
 
@@ -33,6 +34,8 @@ protected:
 	void LookUp(float Value);
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
+	void ReloadButtonPressed();
+
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime);
@@ -135,7 +138,7 @@ public:
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bAiming);
 	void PlayHitReactMontage();
-	
+	void PlayReloadMontage();
 	void PlayElimMontage();
 	/*
 	UFUNCTION(Server, Reliable)
@@ -186,7 +189,7 @@ private:
 
 
 	// 战斗组件类指针，在角色蓝图里关联起来
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCombatComponent* Combat;
 
 	// 远程过程调用RPC，Server：这个修饰符表示函数将在服务器上执行。客户端调用这个函数时，Unreal Engine 会将调用请求发送到服务器，服务器接收到请求后执行该函数。
@@ -203,6 +206,8 @@ private:
 	ETurningInPlace TurningInPlace;
 	void TurnInPlace(float DeltaTime);
 
+	// 蒙太奇动画
+
 	UPROPERTY(EditAnywhere, Category = Combat)
 	class UAnimMontage* FireWeaponMontage;
 
@@ -212,6 +217,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* ElimMontage;
 	
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ReloadMontage;
+
 
 	void HideCameraIFCharacterClose();
 
@@ -255,4 +263,6 @@ public:
 	FORCEINLINE float GetHealth() const { return Health; }
 
 	FORCEINLINE float GetMaxtHealth() const { return MaxHealth; }
+
+	ECombatState GetCombatState() const;
 };

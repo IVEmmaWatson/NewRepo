@@ -5,6 +5,7 @@
 #include "ZeusCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Zeus/ZeusTypes/CombatState.h"
 #include "Zeus/Weapon/Weapon.h"
 
 void UZeusAnimInstance::NativeInitializeAnimation()
@@ -144,5 +145,12 @@ void UZeusAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		// DrawDebugLine(GetWorld(), MuzzleFlashTransform.GetLocation(), MuzzleFlashTransform.GetLocation() + MuzzleX * 1000.f, FColor::Red);
 		// DrawDebugLine(GetWorld(), MuzzleFlashTransform.GetLocation(), ZeusCharacter->GetHitTarget(), FColor::Black);
 	}
+
+	// 如果不是ECS_Reloading就启用FABRIK
+	bUseFABRIK = ZeusCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+
+	bUesAimOffsets= ZeusCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+
+	bTransformRightHand= ZeusCharacter->GetCombatState() != ECombatState::ECS_Reloading;
 }
 

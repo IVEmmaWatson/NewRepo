@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Animation/AnimationAsset.h"
+#include "WeaponTypes.h"
 #include "Weapon.generated.h"
 
 
@@ -40,6 +41,7 @@ public:
 	void Dropped();
 	virtual	void OnRep_Owner() override;
 	void SetHUDAmmo();
+	void AddAmmo(int32 AmmoToAdd);
 
 	// UTexture2D：这是Unreal Engine中的一个类，代表2D纹理。这些纹理通常用于游戏中的图像，如HUD元素、角色纹理等。
 	UPROPERTY(EditAnywhere, Category = "Crosshairs")
@@ -73,7 +75,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	bool bAutomatic = true;
 
-
+	UPROPERTY(EditAnywhere)
+	class USoundCue* EquipSound;
 protected:
 
 	virtual void BeginPlay() override;
@@ -141,6 +144,9 @@ private:
 	class AZeusCharacter* ZeusOwnerCharacter;
 	UPROPERTY()
 	class AZeusPlayerController* ZeusOwnerPlayerController;
+
+	UPROPERTY(EditAnywhere)
+	EWeaponType WeaponType;
 public:
 	// 设置武器状态
 	 
@@ -150,4 +156,8 @@ public:
 	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
 	FORCEINLINE float GetZoomInterpSpeed() const { return ZoomInterpSpeed; }
 	bool IsEmpty();
+
+	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
+	FORCEINLINE int32 GetAmmo() const { return Ammo; }
+	FORCEINLINE int32 GetMagCapactiy() const { return MagCapacity; }
 };
