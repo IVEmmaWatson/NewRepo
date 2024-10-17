@@ -6,14 +6,29 @@
 #include "Zeus/HUD/CharacterOverlay.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Net/UnrealNetwork.h"
 #include "Zeus/Character/ZeusCharacter.h"
+#include "Zeus/HUD/Announcement.h"
+#include "Zeus/GameMode/ZeusGameMode.h"
 
 void AZeusPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
 	ZeusHUD = Cast<AZeusHUD>(GetHUD());
+	if(ZeusHUD)
+	{
+		ZeusHUD->AddAnnouncement();
+	}
 }
+
+void AZeusPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AZeusPlayerController, MatchState);
+}
+
 
 
 void AZeusPlayerController::SetHUDHealth(float Health, float MaxHealth)
@@ -36,6 +51,12 @@ void AZeusPlayerController::SetHUDHealth(float Health, float MaxHealth)
 		FString HealthText = FString::Printf(TEXT("%d/%d"), FMath::CeilToInt(Health), FMath::CeilToInt(MaxHealth));
 		ZeusHUD->CharacterOverlay->HealthText->SetText(FText::FromString(HealthText));
 	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDHealth = Health;
+		HUDMaxHealth = MaxHealth;
+	}
 }
 
 void AZeusPlayerController::SetHUDScore(float Score)
@@ -48,6 +69,11 @@ void AZeusPlayerController::SetHUDScore(float Score)
 	{
 		FString ScoreText = FString::Printf(TEXT("%d"), FMath::FloorToInt(Score));
 		ZeusHUD->CharacterOverlay->ScoreAmount->SetText(FText::FromString(ScoreText));
+	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDScore = Score;
 	}
 }
 
@@ -62,6 +88,11 @@ void AZeusPlayerController::SetHUDDefeats(int32 Defeats)
 	{
 		FString DefeatsText = FString::Printf(TEXT("%d"), Defeats);
 		ZeusHUD->CharacterOverlay->DefeatsAmount->SetText(FText::FromString(DefeatsText));
+	}
+	else
+	{
+		bInitializeCharacterOverlay = true;
+		HUDDefeats = Defeats;
 	}
 }
 
@@ -113,7 +144,21 @@ void AZeusPlayerController::Tick(float DeltaTime)
 
 	SetHUDTime();
 
+	CheckTimeSync(DeltaTime);
+
+	PollInit();
 }
+
+void AZeusPlayerController::CheckTimeSync(float DeltaTime)
+{
+	TimeSyncRunningTime += DeltaTime;
+	if (IsLocalController() && (TimeSyncRunningTime > TimeSyncFrequency))
+	{
+		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
+		TimeSyncRunningTime = 0.f;
+	}
+}
+
 
 void AZeusPlayerController::SetHUDMatchCountdown(float CountdownTime)
 {
@@ -137,12 +182,110 @@ void AZeusPlayerController::SetHUDMatchCountdown(float CountdownTime)
 void AZeusPlayerController::SetHUDTime()
 {
 	// 计算剩余时间秒数
-	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetWorld()->GetTimeSeconds());
+	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetServerTime());
 	// 如果当前秒数与剩余秒数不相等，说明一秒过去了，该更新了
 	if (CountdownInt != SecondsLeft)
 	{
-		SetHUDMatchCountdown(MatchTime - GetWorld()->GetTimeSeconds());
+		SetHUDMatchCountdown(MatchTime - GetServerTime());
 	}
 	// 将剩余秒数存下来
 	CountdownInt = SecondsLeft;
+}
+
+// 保障初始化
+void AZeusPlayerController::PollInit()
+{
+	if (CharacterOverlay == nullptr)
+	{
+		if (ZeusHUD && ZeusHUD->CharacterOverlay)
+		{
+			CharacterOverlay = ZeusHUD->CharacterOverlay;
+			if (CharacterOverlay)
+			{
+				SetHUDHealth(HUDHealth, HUDMaxHealth);
+				SetHUDScore(HUDScore);
+				SetHUDDefeats(HUDDefeats);
+			}
+		}
+	}
+}
+
+
+
+void AZeusPlayerController::ServerRequestServerTime_Implementation(float TimeOfClinetRequest)
+{
+	// 获取当前服务器时间
+	float ServerTimeOfReceipt = GetWorld()->GetTimeSeconds();
+	ClientReportServerTime(TimeOfClinetRequest, ServerTimeOfReceipt);
+}
+
+void AZeusPlayerController::ClientReportServerTime_Implementation(float TimeOfClinetRequest, float TimeServerReceivedClientRequest)
+{
+	// 数据从客户端到服务器，再从服务器到客户端的来返时间
+	float RoundTripTime = GetWorld()->GetTimeSeconds() - TimeOfClinetRequest;
+
+	// 服务器时间加上半程的来返时间
+	float CurrentServerTime = TimeServerReceivedClientRequest + (0.5 * RoundTripTime);
+	CilentServerDeltaTime = CurrentServerTime - GetWorld()->GetTimeSeconds();
+}
+
+
+float AZeusPlayerController::GetServerTime()
+{
+	// 服务器返回
+	if (HasAuthority())
+	{
+		return GetWorld()->GetTimeSeconds();
+	}
+	else
+	{
+		// 客户端返回
+		return GetWorld()->GetTimeSeconds() + CilentServerDeltaTime;
+	}
+	
+}
+
+// 当一个玩家加入游戏或重新生成时，ReceivedPlayer函数会在客户端和服务器上调用，以处理玩家的初始化逻辑
+// 这里初始化时间
+void AZeusPlayerController::ReceivedPlayer()
+{
+	Super::ReceivedPlayer();
+
+	if (IsLocalController())
+	{
+		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
+	}
+}
+
+void AZeusPlayerController::OnMatchStateSet(FName State)
+{
+	MatchState = State;
+
+	if (MatchState == MatchState::InProgress)
+	{
+		HandleMatchHasStarted();
+	}
+}
+
+void AZeusPlayerController::OnRep_MatchState()
+{
+
+	if (MatchState == MatchState::InProgress)
+	{
+		HandleMatchHasStarted();
+	}
+}
+
+void AZeusPlayerController::HandleMatchHasStarted()
+{
+	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
+	if (ZeusHUD)
+	{
+		ZeusHUD->AddCharacterOverlay();
+		// 隐藏热身界面的用户控件
+		if (ZeusHUD->Announcement)
+		{
+			ZeusHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
 }

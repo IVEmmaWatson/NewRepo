@@ -8,6 +8,50 @@
 #include "Zeus/PlayerState/ZeusPlayerState.h"
 #include "GameFramework/PlayerStart.h"
 
+AZeusGameMode::AZeusGameMode()
+{
+	// 延迟比赛开始：允许游戏模式在开始比赛之前有一个延迟。
+	bDelayedStart = true;
+}
+
+void AZeusGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	LevelStartingTime = GetWorld()->GetTimeSeconds();
+	
+}
+
+// 游戏模式（AGameMode）调用 SetMatchState：父类可能自动管理 MatchState 的变化，例如在游戏开始、进行、结束时，它会调用 SetMatchState 改变状态。
+void AZeusGameMode::OnMatchStateSet()
+{
+	Super::OnMatchStateSet();
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; It++)
+	{
+		AZeusPlayerController* ZeusPlayer = Cast<AZeusPlayerController>(*It);
+		if (ZeusPlayer)
+		{
+			ZeusPlayer->OnMatchStateSet(MatchState);
+		}
+	}
+}
+
+
+void AZeusGameMode::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (MatchState == MatchState::WaitingToStart)
+	{
+		CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.f)
+		{
+			StartMatch();
+		}
+	}
+}
+
 // 在 Unreal Engine 中，游戏模式类的代码默认只在服务器端运行。原因是游戏模式负责管理游戏的规则和逻辑，这些应该在服务器端统一处理，以保持游戏的一致性。
 // AZeusGameMode 是一个游戏模式类，它的实例在服务器端创建和运行。客户端没有自己的游戏模式实例。
 void AZeusGameMode::PlayerEliminated(AZeusCharacter* EliminatedCharacter, AZeusPlayerController* VictimController, AZeusPlayerController* AttackController)
