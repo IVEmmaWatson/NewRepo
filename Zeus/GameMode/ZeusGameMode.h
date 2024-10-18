@@ -6,6 +6,13 @@
 #include "GameFramework/GameMode.h"
 #include "ZeusGameMode.generated.h"
 
+
+namespace MatchState
+{
+	extern ZEUS_API const FName Cooldown;	// 当比赛时长达到时，显示获胜者并开始冷却时间
+}
+
+
 /**
  * 
  */
@@ -28,6 +35,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	float MatchTime = 120.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float CooldownTime = 10.f;
 
 	float LevelStartingTime = 0.f;
 	virtual void BeginPlay() override;

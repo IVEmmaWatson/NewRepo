@@ -8,6 +8,12 @@
 #include "Zeus/PlayerState/ZeusPlayerState.h"
 #include "GameFramework/PlayerStart.h"
 
+
+namespace MatchState
+{
+	const FName Cooldown = FName("Cooldown");
+}
+
 AZeusGameMode::AZeusGameMode()
 {
 	// 延迟比赛开始：允许游戏模式在开始比赛之前有一个延迟。
@@ -48,6 +54,14 @@ void AZeusGameMode::Tick(float DeltaTime)
 		if (CountdownTime <= 0.f)
 		{
 			StartMatch();
+		}
+	}
+	else if (MatchState == MatchState::InProgress)
+	{
+		CountdownTime = WarmupTime +MatchTime- GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.f)
+		{
+			SetMatchState(MatchState::Cooldown);
 		}
 	}
 }

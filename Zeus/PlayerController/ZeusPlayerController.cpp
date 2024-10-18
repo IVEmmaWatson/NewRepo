@@ -206,9 +206,9 @@ void AZeusPlayerController::SetHUDTime()
 	else if (MatchState == MatchState::InProgress)
 	{
 		TimeLeft = WarmupTime + MatchTime - GetServerTime() + LevelStartingTime;
-		UE_LOG(LogTemp, Warning, TEXT("warm%f,match%f,level%f"), WarmupTime, MatchTime, LevelStartingTime);
-		UE_LOG(LogTemp, Warning, TEXT("server%f"), TimeLeft);
-		UE_LOG(LogTemp, Warning, TEXT("servertime%f"), GetServerTime());
+		// UE_LOG(LogTemp, Warning, TEXT("warm%f,match%f,level%f"), WarmupTime, MatchTime, LevelStartingTime);
+		// UE_LOG(LogTemp, Warning, TEXT("server%f"), TimeLeft);
+		// UE_LOG(LogTemp, Warning, TEXT("servertime%f"), GetServerTime());
 	}
 	// 计算剩余时间秒数
 	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetServerTime());
@@ -305,6 +305,10 @@ void AZeusPlayerController::OnMatchStateSet(FName State)
 	{
 		HandleMatchHasStarted();
 	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		HandleCooldown();
+	}
 }
 
 void AZeusPlayerController::OnRep_MatchState()
@@ -313,6 +317,10 @@ void AZeusPlayerController::OnRep_MatchState()
 	if (MatchState == MatchState::InProgress)
 	{
 		HandleMatchHasStarted();
+	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		HandleCooldown();
 	}
 }
 
@@ -326,6 +334,21 @@ void AZeusPlayerController::HandleMatchHasStarted()
 		if (ZeusHUD->Announcement)
 		{
 			ZeusHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
+}
+
+
+void AZeusPlayerController::HandleCooldown()
+{
+	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
+	if (ZeusHUD)
+	{
+		ZeusHUD->CharacterOverlay->RemoveFromParent();
+		// 隐藏热身界面的用户控件
+		if (ZeusHUD->Announcement)
+		{
+			ZeusHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
 }
@@ -360,3 +383,5 @@ void AZeusPlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch,
 		ZeusHUD->AddAnnouncement();
 	}
 }
+
+
