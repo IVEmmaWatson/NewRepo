@@ -10,16 +10,16 @@
 #include "Zeus/Character/ZeusCharacter.h"
 #include "Zeus/HUD/Announcement.h"
 #include "Zeus/GameMode/ZeusGameMode.h"
+#include "Kismet/GameplayStatics.h"
 
 void AZeusPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	
+
 	ZeusHUD = Cast<AZeusHUD>(GetHUD());
-	if(ZeusHUD)
-	{
-		ZeusHUD->AddAnnouncement();
-	}
+	ServerCheckMatchState();
 }
 
 void AZeusPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -160,6 +160,7 @@ void AZeusPlayerController::CheckTimeSync(float DeltaTime)
 }
 
 
+
 void AZeusPlayerController::SetHUDMatchCountdown(float CountdownTime)
 {
 	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
@@ -178,15 +179,53 @@ void AZeusPlayerController::SetHUDMatchCountdown(float CountdownTime)
 	}
 }
 
+void AZeusPlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
+{
+	ZeusHUD = ZeusHUD == nullptr ? Cast<AZeusHUD>(GetHUD()) : ZeusHUD;
+	bool bHUDValid = ZeusHUD &&
+		ZeusHUD->Announcement &&
+		ZeusHUD->Announcement->WarmupTime;
+	if (bHUDValid)
+	{
+		// CountdownTime总秒数时间，Minutes分钟，
+		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+		// 总秒数-总分中的秒数结果就是剩余的秒数
+		int32 Seconds = CountdownTime - Minutes * 60;
+
+		FString CountdownText = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
+		ZeusHUD->Announcement->WarmupTime->SetText(FText::FromString(CountdownText));
+	}
+}
+
 
 void AZeusPlayerController::SetHUDTime()
 {
+
+	float TimeLeft = 0.f;
+	if (MatchState == MatchState::WaitingToStart) TimeLeft = WarmupTime - GetServerTime() + LevelStartingTime;
+	else if (MatchState == MatchState::InProgress)
+	{
+		TimeLeft = WarmupTime + MatchTime - GetServerTime() + LevelStartingTime;
+		UE_LOG(LogTemp, Warning, TEXT("warm%f,match%f,level%f"), WarmupTime, MatchTime, LevelStartingTime);
+		UE_LOG(LogTemp, Warning, TEXT("server%f"), TimeLeft);
+		UE_LOG(LogTemp, Warning, TEXT("servertime%f"), GetServerTime());
+	}
 	// 计算剩余时间秒数
 	uint32 SecondsLeft = FMath::CeilToInt(MatchTime - GetServerTime());
 	// 如果当前秒数与剩余秒数不相等，说明一秒过去了，该更新了
 	if (CountdownInt != SecondsLeft)
 	{
-		SetHUDMatchCountdown(MatchTime - GetServerTime());
+		if (MatchState == MatchState::WaitingToStart)
+		{
+			SetHUDAnnouncementCountdown(TimeLeft);
+		}
+		if (MatchState == MatchState::InProgress)
+		{
+			SetHUDMatchCountdown(TimeLeft);
+			// UE_LOG(LogTemp, Warning, TEXT("warm%f,match%f,level%f"),WarmupTime,MatchTime,LevelStartingTime);
+			
+		}
+		
 	}
 	// 将剩余秒数存下来
 	CountdownInt = SecondsLeft;
@@ -261,6 +300,7 @@ void AZeusPlayerController::OnMatchStateSet(FName State)
 {
 	MatchState = State;
 
+
 	if (MatchState == MatchState::InProgress)
 	{
 		HandleMatchHasStarted();
@@ -287,5 +327,36 @@ void AZeusPlayerController::HandleMatchHasStarted()
 		{
 			ZeusHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);
 		}
+	}
+}
+
+
+void AZeusPlayerController::ServerCheckMatchState_Implementation()
+{
+	AZeusGameMode* GameMode = Cast<AZeusGameMode>(UGameplayStatics::GetGameMode(this));
+	if (GameMode)
+	{
+		WarmupTime = GameMode->WarmupTime;
+		MatchTime = GameMode->MatchTime;
+		LevelStartingTime = GameMode->LevelStartingTime;
+		MatchState = GameMode->GetMatchState();
+		ClientJoinMidgame(MatchState, WarmupTime, MatchTime, LevelStartingTime);
+		
+		
+	}
+}
+
+
+void AZeusPlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch,float Warmup,float Match,float StartingTime)
+{
+	WarmupTime = Warmup;
+	MatchTime = Match;
+	LevelStartingTime = StartingTime;
+	MatchState = StateOfMatch;
+	OnMatchStateSet(MatchState);
+	// 如果在游戏进行中加入游戏将不会显示热身界面
+	if (ZeusHUD && MatchState == MatchState::WaitingToStart)
+	{
+		ZeusHUD->AddAnnouncement();
 	}
 }

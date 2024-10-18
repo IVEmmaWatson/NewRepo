@@ -22,6 +22,7 @@ public:
 	void SetHUDAmmo(int32 Ammo);
 	void SetHUDCarriedAmmo(int32 Ammo);
 	void SetHUDMatchCountdown(float CountdownTime);
+	void SetHUDAnnouncementCountdown(float CountdownTime);
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void Tick(float DeltaTime) override;
 
@@ -60,11 +61,19 @@ protected:
 	// 距离同步时间，每帧更新
 	float TimeSyncRunningTime = 0.f;
 	void CheckTimeSync(float DeltaTime);
+
+	UFUNCTION(Server,Reliable)
+	void ServerCheckMatchState();
+
+	UFUNCTION(Client,Reliable)
+	void ClientJoinMidgame(FName StateOfMatch, float Warmup, float Match, float StartingTime);
 private:
 	UPROPERTY()
 	class AZeusHUD* ZeusHUD;
 
-	float MatchTime = 120.f;
+	float LevelStartingTime=0;
+	float MatchTime = 0.f;
+	float WarmupTime = 0.f;
 	uint32 CountdownInt = 0;
 
 	UPROPERTY(ReplicatedUsing = OnRep_MatchState)
